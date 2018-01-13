@@ -6,6 +6,7 @@
 
 Z80_registers regs;
 
+#define KILO_VERSION "0.0.1"
 #define _TERM0  0x00
 #define _TERM   0x62
 #define _DOSVER 0x6F
@@ -111,26 +112,50 @@ void abFree(struct abuf *ab) {
 void editorDrawRows(struct abuf *ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
-    abAppend(ab, "~", 1);
+    if (y == E.screenrows / 3) {
+      char welcome[80];
+      int welcomelen;
+      int padding;
+
+      sprintf(welcome, "Kilo editor -- version %s", KILO_VERSION);
+      welcomelen = strlen(welcome);
+
+      padding = (E.screencols - welcomelen) / 2;
+
+      if (padding) {
+        abAppend(ab, "~", 1);
+        padding--;
+      }
+      while (padding--) abAppend(ab, " ", 1);
+      abAppend(ab, welcome, welcomelen);
+    } else {
+      abAppend(ab, "~", 1);
+    }
     abAppend(ab, "\33K", 2);
 
     if (y < E.screenrows - 1) {
-      abAppend(ab, "\r\n", 2);
+      abAppend(ab, "\n\r", 2);
     }
+  }
+}
+
+void printBuff(struct abuf *ab) {
+  int x;
+  for (x = 0; x < ab->len; x++) {
+    putchar(ab->b[x]);
   }
 }
 
 void editorRefreshScreen() {
   struct abuf ab = ABUF_INIT;
 
-  /*abAppend(&ab, "\33x5", 3); // Hide cursor*/
+  abAppend(&ab, "\33x5", 3); // Hide cursor
   abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
   editorDrawRows(&ab);
   abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
-  /*abAppend(&ab, "\33y5", 3); // Enable cursor*/
-  abAppend(&ab, "\0", 1);    // End of string
+  abAppend(&ab, "\33y5", 3); // Enable cursor
 
-  printf("%s", ab.b);
+  printBuff(&ab);
   abFree(&ab);
 }
 
