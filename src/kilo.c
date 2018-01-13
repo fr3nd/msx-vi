@@ -112,6 +112,7 @@ void editorDrawRows(struct abuf *ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
     abAppend(ab, "~", 1);
+    abAppend(ab, "\33K", 2);
 
     if (y < E.screenrows - 1) {
       abAppend(ab, "\r\n", 2);
@@ -122,12 +123,11 @@ void editorDrawRows(struct abuf *ab) {
 void editorRefreshScreen() {
   struct abuf ab = ABUF_INIT;
 
-  abAppend(&ab, "\33x5", 3); // Hide cursor
-  abAppend(&ab, "\33E", 2);  // Clear screen
+  /*abAppend(&ab, "\33x5", 3); // Hide cursor*/
   abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
   editorDrawRows(&ab);
   abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
-  abAppend(&ab, "\33y5", 3); // Enable cursor
+  /*abAppend(&ab, "\33y5", 3); // Enable cursor*/
   abAppend(&ab, "\0", 1);    // End of string
 
   printf("%s", ab.b);
