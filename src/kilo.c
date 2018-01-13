@@ -116,21 +116,21 @@ void editorDrawRows(struct abuf *ab) {
     if (y < E.screenrows - 1) {
       abAppend(ab, "\r\n", 2);
     }
-
   }
-  abAppend(ab, "\0", 1);
 }
 
 void editorRefreshScreen() {
   struct abuf ab = ABUF_INIT;
 
-  cls();
-  gotoxy(0, 0);
-
+  abAppend(&ab, "\33x5", 3); // Hide cursor
+  abAppend(&ab, "\33E", 2);  // Clear screen
+  abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
   editorDrawRows(&ab);
-  printf(ab.b);
+  abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
+  abAppend(&ab, "\33y5", 3); // Enable cursor
+  abAppend(&ab, "\0", 1);    // End of string
 
-  gotoxy(0, 0);
+  printf("%s", ab.b);
   abFree(&ab);
 }
 
