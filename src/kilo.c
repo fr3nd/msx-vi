@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 #include "asm.h"
 
 Z80_registers regs;
@@ -86,21 +87,51 @@ void init() {
 void quit_program() {
 }
 
+/*** append buffer ***/
+
+struct abuf {
+  char *b;
+  int len;
+};
+#define ABUF_INIT {NULL, 0}
+
+void abAppend(struct abuf *ab, const char *s, int len) {
+  char *new = realloc(ab->b, ab->len + len);
+  if (new == NULL) return;
+  memcpy(&new[ab->len], s, len);
+  ab->b = new;
+  ab->len += len;
+}
+void abFree(struct abuf *ab) {
+  free(ab->b);
+}
+
 /*** output ***/
 
-void editorDrawRows() {
+void editorDrawRows(struct abuf *ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
-    putchar('~');
-    gotoxy(0, y);
+    abAppend(ab, "~", 1);
+
+    if (y < E.screenrows - 1) {
+      abAppend(ab, "\r\n", 2);
+    }
+
   }
+  abAppend(ab, "\0", 1);
 }
 
 void editorRefreshScreen() {
+  struct abuf ab = ABUF_INIT;
+
   cls();
   gotoxy(0, 0);
-  editorDrawRows();
+
+  editorDrawRows(&ab);
+  printf(ab.b);
+
   gotoxy(0, 0);
+  abFree(&ab);
 }
 
 /*** input ***/
@@ -119,8 +150,6 @@ void editorProcessKeypress() {
       break;
   }
 }
-
-
 
 /*** main ***/
 
