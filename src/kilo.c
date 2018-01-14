@@ -29,10 +29,17 @@ Z80_registers regs;
 
 /*** data ***/
 
+typedef struct erow {
+  int size;
+  char *chars;
+} erow;
+
 struct editorConfig {
   int cx, cy;
   int screenrows;
   int screencols;
+  int numrows;
+  erow row;
 };
 
 struct editorConfig E;
@@ -79,6 +86,16 @@ int getWindowSize(int *rows, int *cols) {
   return getCursorPosition(rows, cols);
 }
 
+void editorOpen() {
+  char *line = "Hello, world!";
+  size_t linelen = 13;
+  E.row.size = linelen;
+  E.row.chars = malloc(linelen + 1);
+  memcpy(E.row.chars, line, linelen);
+  E.row.chars[linelen] = '\0';
+  E.numrows = 1;
+}
+
 void init() {
   static char __at(0xF3AE) _LINL40;
 
@@ -97,7 +114,9 @@ void init() {
 
   E.cx = 0;
   E.cy = 0;
+  E.numrows = 0;
 }
+
 
 void quit_program() {
 }
@@ -126,29 +145,35 @@ void abFree(struct abuf *ab) {
 void editorDrawRows(struct abuf *ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
-    if (y == E.screenrows / 3) {
-      char welcome[80];
-      int welcomelen;
-      int padding;
+    if (y >= E.numrows) {
+      if (y == E.screenrows / 3) {
+        char welcome[80];
+        int welcomelen;
+        int padding;
 
-      sprintf(welcome, "Kilo editor -- version %s", KILO_VERSION);
-      welcomelen = strlen(welcome);
+        sprintf(welcome, "Kilo editor -- version %s", KILO_VERSION);
+        welcomelen = strlen(welcome);
 
-      padding = (E.screencols - welcomelen) / 2;
+        padding = (E.screencols - welcomelen) / 2;
 
-      if (padding) {
+        if (padding) {
+          abAppend(ab, "~", 1);
+          padding--;
+        }
+        while (padding--) abAppend(ab, " ", 1);
+        abAppend(ab, welcome, welcomelen);
+      } else {
         abAppend(ab, "~", 1);
-        padding--;
       }
-      while (padding--) abAppend(ab, " ", 1);
-      abAppend(ab, welcome, welcomelen);
-    } else {
-      abAppend(ab, "~", 1);
-    }
-    abAppend(ab, "\33K", 2);
+      abAppend(ab, "\33K", 2);
 
-    if (y < E.screenrows - 1) {
-      abAppend(ab, "\n\r", 2);
+      if (y < E.screenrows - 1) {
+        abAppend(ab, "\n\r", 2);
+      }
+    } else {
+      int len = E.row.size;
+      if (len > E.screencols) len = E.screencols;
+      abAppend(ab, E.row.chars, len);
     }
   }
 }
@@ -259,6 +284,7 @@ int main() {
   init();
 
   while (1) {
+    editorOpen();
     editorRefreshScreen();
     editorProcessKeypress();
   }
