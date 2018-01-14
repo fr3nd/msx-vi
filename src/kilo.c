@@ -16,6 +16,7 @@ Z80_registers regs;
 #define PAGE_DOWN   -2 // MSX doesn't have this key
 #define HOME_KEY    11
 #define END_KEY     -3 // MSX doesn't have this key
+#define DEL_KEY     127
 
 #define _TERM0  0x00
 #define _TERM   0x62
@@ -222,6 +223,7 @@ void editorMoveCursor(char key) {
 
 void editorProcessKeypress() {
   char c = editorReadKey();
+  //printf("%d", c); // for getting key code
   switch (c) {
     case CTRL_KEY('q'):
       cls();
