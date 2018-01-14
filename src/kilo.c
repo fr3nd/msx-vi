@@ -7,7 +7,7 @@
 Z80_registers regs;
 
 #define KILO_VERSION "0.0.1"
-#define FILE_BUFFER_LENGTH 64
+#define FILE_BUFFER_LENGTH 256
 
 #define ARROW_RIGHT 28
 #define ARROW_LEFT  29
@@ -143,21 +143,44 @@ void editorAppendRow(char *s, size_t len) {
 
 /*** file io ***/
 
+//* Read one char from file
+char fgetc(int fp) {
+  char *c = NULL;
+
+  if ( read(c, sizeof(char), fp) != sizeof(char) ) {
+    return EOF;
+  } else {
+    return *c;
+  }
+}
+
+//* Read line from file
+char *fgets(char *s, int n, int fp) {
+  int c = 0;
+  char *cptr;
+
+  cptr = s;
+
+  while (--n > 0 && (c = fgetc(fp)) != EOF) {
+    if ((c != '\n') && (c != '\r')) {
+      *cptr++ = c;
+    } else {
+      break;
+    }
+  }
+  *cptr = '\0';
+  return (c == EOF && cptr == s)? NULL: s;
+}
+
 void editorOpen(char *filename) {
   int fp;
   char buffer[FILE_BUFFER_LENGTH+1];
-  int size_read;
+  //int size_read;
 
   fp  = open(filename, O_RDONLY);
   if (fp < 0) die("Error opening file");
-  while (1) {
-    buffer[0] = '\0';
-    size_read = read(buffer, FILE_BUFFER_LENGTH, fp);
-    if (size_read < 0) {
-      break;
-    }
-    buffer[size_read] = '\0';
-    editorAppendRow(buffer, size_read);
+  while (fgets(buffer, FILE_BUFFER_LENGTH, fp) != NULL) {
+    editorAppendRow(buffer, strlen(buffer));
   }
 
   close(fp);
@@ -238,7 +261,6 @@ void editorDrawRows(struct abuf *ab) {
       if (len > E.screencols) len = E.screencols;
       abAppend(ab, E.row[y].chars, len);
     }
-
 
     abAppend(ab, "\33K", 2);
     if (y < E.screenrows - 1) {
