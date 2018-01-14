@@ -7,6 +7,7 @@
 Z80_registers regs;
 
 #define KILO_VERSION "0.0.1"
+#define FILE_BUFFER_LENGTH 64
 
 #define ARROW_RIGHT 28
 #define ARROW_LEFT  29
@@ -18,11 +19,21 @@ Z80_registers regs;
 #define END_KEY     -3 // MSX doesn't have this key
 #define DEL_KEY     127
 
+/* open/creat flags */
+#define  O_RDONLY   0x01
+#define  O_WRONLY   0x02
+#define  O_RDWR     0x00
+#define  O_INHERIT  0x04
+
 #define _TERM0  0x00
 #define _TERM   0x62
 #define _DOSVER 0x6F
 #define _INITXT 0x006C
 #define _POSIT  0xC6
+#define _OPEN   0x43
+#define _CLOSE  0x45
+#define _READ   0x48
+#define _EOF    0x0C7
 
 #define perror(x) {printf("*** ");printf(x);printf("\r\n");}
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -39,7 +50,7 @@ struct editorConfig {
   int screenrows;
   int screencols;
   int numrows;
-  erow row;
+  erow *row;
 };
 
 struct editorConfig E;
@@ -55,6 +66,36 @@ void gotoxy(int x, int y) {
 void cls(void) {
   putchar(0x1b);
   putchar(0x45);
+}
+
+int open(char *fn, int mode) {
+  regs.Words.DE = (int)fn;
+  regs.Bytes.A = mode;
+  regs.Bytes.B = 0;
+  DosCall(_OPEN, &regs, REGS_MAIN, REGS_MAIN);
+  if (regs.Bytes.A == 0) {
+    return regs.Bytes.B;
+  } else {
+    return -1;
+  }
+}
+
+int close(int fp) {
+  regs.UWords.DE = fp;
+  DosCall(_CLOSE, &regs, REGS_MAIN, REGS_NONE);
+  return regs.Bytes.B;
+}
+
+int read(char* buf, int size, int fp) {
+  regs.Bytes.B = fp;
+  regs.UWords.DE = (int)buf;
+  regs.UWords.HL = size;
+  DosCall(_READ, &regs, REGS_MAIN, REGS_MAIN);
+  if (regs.Bytes.A == 0) {
+    return regs.UWords.HL;
+  } else {
+    return -1;
+  }
 }
 
 void exit(int code) {
@@ -86,14 +127,40 @@ int getWindowSize(int *rows, int *cols) {
   return getCursorPosition(rows, cols);
 }
 
-void editorOpen() {
-  char *line = "Hello, world!";
-  size_t linelen = 13;
-  E.row.size = linelen;
-  E.row.chars = malloc(linelen + 1);
-  memcpy(E.row.chars, line, linelen);
-  E.row.chars[linelen] = '\0';
-  E.numrows = 1;
+/*** row operations ***/
+
+void editorAppendRow(char *s, size_t len) {
+  int at;
+
+  E.row = realloc(E.row, sizeof(erow) * (E.numrows + 1));
+  at = E.numrows;
+  E.row[at].size = len;
+  E.row[at].chars = malloc(len + 1);
+  memcpy(E.row[at].chars, s, len);
+  E.row[at].chars[len] = '\0';
+  E.numrows++;
+}
+
+/*** file io ***/
+
+void editorOpen(char *filename) {
+  int fp;
+  char buffer[FILE_BUFFER_LENGTH+1];
+  int size_read;
+
+  fp  = open(filename, O_RDONLY);
+  if (fp < 0) die("Error opening file");
+  while (1) {
+    buffer[0] = '\0';
+    size_read = read(buffer, FILE_BUFFER_LENGTH, fp);
+    if (size_read < 0) {
+      break;
+    }
+    buffer[size_read] = '\0';
+    editorAppendRow(buffer, size_read);
+  }
+
+  close(fp);
 }
 
 void init() {
@@ -115,6 +182,7 @@ void init() {
   E.cx = 0;
   E.cy = 0;
   E.numrows = 0;
+  E.row = NULL;
 }
 
 
@@ -146,7 +214,7 @@ void editorDrawRows(struct abuf *ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
     if (y >= E.numrows) {
-      if (y == E.screenrows / 3) {
+      if (E.numrows == 0 && y == E.screenrows / 3) {
         char welcome[80];
         int welcomelen;
         int padding;
@@ -165,15 +233,16 @@ void editorDrawRows(struct abuf *ab) {
       } else {
         abAppend(ab, "~", 1);
       }
-      abAppend(ab, "\33K", 2);
-
-      if (y < E.screenrows - 1) {
-        abAppend(ab, "\n\r", 2);
-      }
     } else {
-      int len = E.row.size;
+      int len = E.row[y].size;
       if (len > E.screencols) len = E.screencols;
-      abAppend(ab, E.row.chars, len);
+      abAppend(ab, E.row[y].chars, len);
+    }
+
+
+    abAppend(ab, "\33K", 2);
+    if (y < E.screenrows - 1) {
+      abAppend(ab, "\n\r", 2);
     }
   }
 }
@@ -278,13 +347,34 @@ void editorProcessKeypress() {
 
 /*** main ***/
 
-int main() {
+int main(char **argv, int argc) {
   char c;
+  int i;
+  char filename[13] ;
+  *filename = '\0';
 
   init();
 
+  for (i = 0; i < argc; i++) {
+    if (argv[i][0] == '-') {
+      switch (argv[i][1]) {
+        /*case 'h':*/
+          /*usage();*/
+          /*break;*/
+        default:
+          die("ERROR: Parameter not recognised");
+          break;
+      }
+    } else {
+      strcpy(filename, argv[i]);
+    }
+  }
+
+  if (filename[0] != '\0') {
+    editorOpen(filename);
+  }
+
   while (1) {
-    editorOpen();
     editorRefreshScreen();
     editorProcessKeypress();
   }

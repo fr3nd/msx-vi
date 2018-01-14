@@ -11,7 +11,7 @@ INCLUDEDIR = include
 # Uncomment the CCFLAGS variable depending on your needs
 #CCFLAGS = --code-loc 0x0178 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) include/crt0msx_msxdos_advanced.rel include/putchar.rel include/getchar.rel include/dos2.rel
 #CCFLAGS = --code-loc 0x0107 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) include/crt0msx_msxdos.rel include/putchar.rel include/getchar.rel include/dos2.rel
-CCFLAGS := --code-loc 0x0107 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) include/crt0msx_msxdos.rel include/asm.lib include/getchar.rel include/putchar.rel
+CCFLAGS := --code-loc 0x0178 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) include/crt0msx_msxdos_advanced.rel include/asm.lib include/getchar.rel include/putchar.rel
 
 all: hex2bin libs $(COM_FILES)
 
