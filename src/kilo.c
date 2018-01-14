@@ -19,6 +19,7 @@ Z80_registers regs;
 /*** data ***/
 
 struct editorConfig {
+  int cx, cy;
   int screenrows;
   int screencols;
 };
@@ -83,6 +84,8 @@ void init() {
   // Get window size
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
 
+  E.cx = 0;
+  E.cy = 0;
 }
 
 void quit_program() {
@@ -148,11 +151,18 @@ void printBuff(struct abuf *ab) {
 
 void editorRefreshScreen() {
   struct abuf ab = ABUF_INIT;
+  char buf[3];
 
   abAppend(&ab, "\33x5", 3); // Hide cursor
   abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
   editorDrawRows(&ab);
-  abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
+
+  abAppend(&ab,"\33Y", 2);
+  sprintf(buf, "%c", E.cy + 32);
+  abAppend(&ab, buf, 1);
+  sprintf(buf, "%c", E.cx + 32);
+  abAppend(&ab, buf, 1);
+
   abAppend(&ab, "\33y5", 3); // Enable cursor
 
   printBuff(&ab);
@@ -165,6 +175,23 @@ char editorReadKey() {
   return getchar();
 }
 
+void editorMoveCursor(char key) {
+  switch (key) {
+    case 'a':
+      E.cx--;
+      break;
+    case 'd':
+      E.cx++;
+      break;
+    case 'w':
+      E.cy--;
+      break;
+    case 's':
+      E.cy++;
+      break;
+  }
+}
+
 void editorProcessKeypress() {
   char c = editorReadKey();
   switch (c) {
@@ -172,6 +199,12 @@ void editorProcessKeypress() {
       cls();
       gotoxy(0, 0);
       exit(0);
+      break;
+    case 'w':
+    case 's':
+    case 'a':
+    case 'd':
+      editorMoveCursor(c);
       break;
   }
 }
