@@ -7,6 +7,12 @@
 Z80_registers regs;
 
 #define KILO_VERSION "0.0.1"
+
+#define ARROW_RIGHT 28
+#define ARROW_LEFT  29
+#define ARROW_UP    30
+#define ARROW_DOWN  31
+
 #define _TERM0  0x00
 #define _TERM   0x62
 #define _DOSVER 0x6F
@@ -177,16 +183,16 @@ char editorReadKey() {
 
 void editorMoveCursor(char key) {
   switch (key) {
-    case 'a':
+    case ARROW_LEFT:
       E.cx--;
       break;
-    case 'd':
+    case ARROW_RIGHT:
       E.cx++;
       break;
-    case 'w':
+    case ARROW_UP:
       E.cy--;
       break;
-    case 's':
+    case ARROW_DOWN:
       E.cy++;
       break;
   }
@@ -200,10 +206,10 @@ void editorProcessKeypress() {
       gotoxy(0, 0);
       exit(0);
       break;
-    case 'w':
-    case 's':
-    case 'a':
-    case 'd':
+    case ARROW_UP:
+    case ARROW_DOWN:
+    case ARROW_LEFT:
+    case ARROW_RIGHT:
       editorMoveCursor(c);
       break;
   }
