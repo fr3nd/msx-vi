@@ -12,6 +12,8 @@ Z80_registers regs;
 #define ARROW_LEFT  29
 #define ARROW_UP    30
 #define ARROW_DOWN  31
+#define PAGE_UP     -1 // MSX doesn't have this key
+#define PAGE_DOWN   -2 // MSX doesn't have this key
 
 #define _TERM0  0x00
 #define _TERM   0x62
@@ -182,7 +184,19 @@ char editorReadKey() {
 }
 
 void editorMoveCursor(char key) {
+  int times;
+
+  //printf("%d", key); // for testing keys
+
   switch (key) {
+    case PAGE_UP:
+    case PAGE_DOWN:
+      {
+        times = E.screenrows;
+        while (times--)
+          editorMoveCursor(key == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+      }
+      break;
     case ARROW_LEFT:
       if (E.cx != 0) {
         E.cx--;
@@ -213,6 +227,12 @@ void editorProcessKeypress() {
       cls();
       gotoxy(0, 0);
       exit(0);
+      break;
+    case CTRL_KEY('d'):
+      editorMoveCursor(PAGE_DOWN);
+      break;
+    case CTRL_KEY('u'):
+      editorMoveCursor(PAGE_UP);
       break;
     case ARROW_UP:
     case ARROW_DOWN:
