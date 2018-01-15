@@ -86,18 +86,6 @@ int close(int fp) {
   return regs.Bytes.B;
 }
 
-int read(char* buf, int size, int fp) {
-  regs.Bytes.B = fp;
-  regs.UWords.DE = (int)buf;
-  regs.UWords.HL = size;
-  DosCall(_READ, &regs, REGS_MAIN, REGS_MAIN);
-  if (regs.Bytes.A == 0) {
-    return regs.UWords.HL;
-  } else {
-    return -1;
-  }
-}
-
 void exit(int code) {
   regs.Bytes.B = code;
   DosCall(_TERM, &regs, REGS_MAIN, REGS_NONE);
@@ -142,6 +130,19 @@ void editorAppendRow(char *s, size_t len) {
 }
 
 /*** file io ***/
+
+int read(char* buf, uint size, byte fp) {
+  regs.Bytes.B = fp;
+  regs.UWords.DE = (uint)buf;
+  regs.UWords.HL = size;
+  DosCall(_READ, &regs, REGS_MAIN, REGS_MAIN);
+
+  if (regs.Bytes.A == 0) {
+    return regs.UWords.HL;
+  } else {
+    return -1;
+  }
+}
 
 //* Read one char from file
 char fgetc(int fp) {
