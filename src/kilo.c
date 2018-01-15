@@ -163,8 +163,10 @@ char *fgets(char *s, int n, int fp) {
   cptr = s;
 
   while (--n > 0 && (c = fgetc(fp)) != EOF) {
-    if ((c != '\n') && (c != '\r')) {
-      *cptr++ = c;
+    if (c != '\n') {
+      if (c != '\r') {
+        *cptr++ = c;
+      }
     } else {
       break;
     }
