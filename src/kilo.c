@@ -148,6 +148,7 @@ int read(char* buf, uint size, byte fp) {
 char fgetc(int fp) {
   char c[1];
 
+  printf(".");
   if ( read(c, sizeof(char), fp) != sizeof(char) ) {
     return EOF;
   } else {
@@ -204,6 +205,7 @@ void init() {
 
   // Get window size
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
+  gotoxy(0, 0);
 
   E.cx = 0;
   E.cy = 0;
