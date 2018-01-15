@@ -337,6 +337,8 @@ char editorReadKey() {
 
 void editorMoveCursor(char key) {
   int times;
+  int rowlen;
+  erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
 
   switch (key) {
     case PAGE_UP:
@@ -350,10 +352,18 @@ void editorMoveCursor(char key) {
     case ARROW_LEFT:
       if (E.cx != 0) {
         E.cx--;
+      } else if (E.cy > 0) {
+        E.cy--;
+        E.cx = E.row[E.cy].size;
       }
       break;
     case ARROW_RIGHT:
-      E.cx++;
+      if (row && E.cx < row->size) {
+        E.cx++;
+      } else if (row && E.cx == row->size) {
+        E.cy++;
+        E.cx = 0;
+      }
       break;
     case ARROW_UP:
       if (E.cy != 0) {
@@ -365,6 +375,12 @@ void editorMoveCursor(char key) {
         E.cy++;
       }
       break;
+  }
+
+  row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+  rowlen = row ? row->size : 0;
+  if (E.cx > rowlen) {
+    E.cx = rowlen;
   }
 }
 
