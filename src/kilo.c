@@ -7,7 +7,7 @@
 Z80_registers regs;
 
 #define KILO_VERSION "0.0.1"
-#define FILE_BUFFER_LENGTH 256
+#define FILE_BUFFER_LENGTH 512
 
 #define ARROW_RIGHT 28
 #define ARROW_LEFT  29
