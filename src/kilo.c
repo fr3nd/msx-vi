@@ -33,7 +33,7 @@ Z80_registers regs;
 #define _OPEN   0x43
 #define _CLOSE  0x45
 #define _READ   0x48
-#define _EOF    0x0C7
+#define _EOF    0xC7
 
 #define perror(x) {printf("*** ");printf(x);printf("\r\n");}
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -240,12 +240,15 @@ void abFree(struct abuf *ab) {
 
 void editorDrawRows(struct abuf *ab) {
   int y;
+  int len;
+  char welcome[80];
+  int welcomelen;
+  int padding;
+  char debug[80];
+
   for (y = 0; y < E.screenrows; y++) {
     if (y >= E.numrows) {
       if (E.numrows == 0 && y == E.screenrows / 3) {
-        char welcome[80];
-        int welcomelen;
-        int padding;
 
         sprintf(welcome, "Kilo editor -- version %s", KILO_VERSION);
         welcomelen = strlen(welcome);
@@ -262,7 +265,7 @@ void editorDrawRows(struct abuf *ab) {
         abAppend(ab, "~", 1);
       }
     } else {
-      int len = E.row[y].size;
+      len = E.row[y].size;
       if (len > E.screencols) len = E.screencols;
       abAppend(ab, E.row[y].chars, len);
     }
@@ -296,6 +299,7 @@ void editorRefreshScreen() {
   abAppend(&ab, buf, 1);
 
   abAppend(&ab, "\33y5", 3); // Enable cursor
+
 
   printBuff(&ab);
   abFree(&ab);
