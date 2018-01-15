@@ -146,7 +146,7 @@ int read(char* buf, uint size, byte fp) {
 
 //* Read one char from file
 char fgetc(int fp) {
-  char *c = NULL;
+  char c[1];
 
   if ( read(c, sizeof(char), fp) != sizeof(char) ) {
     return EOF;
