@@ -116,8 +116,6 @@ int getCursorPosition(int *rows, int *cols) {
 }
 
 int getWindowSize(int *rows, int *cols) {
-  struct winsize ws;
-
   gotoxy(999, 999);
   return getCursorPosition(rows, cols);
 }
