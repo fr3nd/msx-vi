@@ -13,6 +13,8 @@ Z80_registers regs;
 #define KILO_TAB_STOP 8
 #define FILE_BUFFER_LENGTH 512
 
+#define BACKSPACE   8
+#define ESC         27
 #define ARROW_RIGHT 28
 #define ARROW_LEFT  29
 #define ARROW_UP    30
@@ -203,6 +205,25 @@ void editorAppendRow(char *s, size_t len) {
   E.row[at].render = NULL;
   editorUpdateRow(&E.row[at]);
   E.numrows++;
+}
+
+void editorRowInsertChar(erow *row, int at, int c) {
+  if (at < 0 || at > row->size) at = row->size;
+  row->chars = realloc(row->chars, row->size + 2);
+  memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
+  row->size++;
+  row->chars[at] = c;
+  editorUpdateRow(row);
+}
+
+/*** editor operations ***/
+
+void editorInsertChar(int c) {
+  if (E.cy == E.numrows) {
+    editorAppendRow("", 0);
+  }
+  editorRowInsertChar(&E.row[E.cy], E.cx, c);
+  E.cx++;
 }
 
 /*** file io ***/
@@ -525,6 +546,9 @@ void editorProcessKeypress() {
   char c = editorReadKey();
   //printf("%d", c); // for getting key code
   switch (c) {
+    case '\r':
+      // TODO
+      break;
     case CTRL_KEY('q'):
       cls();
       gotoxy(0, 0);
@@ -536,6 +560,10 @@ void editorProcessKeypress() {
     case END_KEY:
       if (E.cy < E.numrows)
         E.cx = E.row[E.cy].size;
+      break;
+    case BACKSPACE:
+    case DEL_KEY:
+      // TODO
       break;
     case CTRL_KEY('d'):
       editorMoveCursor(PAGE_DOWN);
@@ -549,15 +577,32 @@ void editorProcessKeypress() {
     case ARROW_RIGHT:
       editorMoveCursor(c);
       break;
+
+    case CTRL_KEY('l'):
+      break;
+    case ESC:
+      printf("\a"); // BEEP
+      break;
+    default:
+      editorInsertChar(c);
+      break;
   }
 }
 
 /*** main ***/
 
+void debug_keys(void) {
+  char c;
+  c = getchar();
+  printf("%d\n\r", c);
+}
+
 int main(char **argv, int argc) {
   int i;
   char filename[13] ;
   *filename = '\0';
+
+  //while (1) debug_keys();
 
   init();
 
