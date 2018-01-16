@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
+#include <stdarg.h>
 #include "asm.h"
 #include "heap.h"
 
@@ -36,6 +38,8 @@ Z80_registers regs;
 #define _CLOSE  0x45
 #define _READ   0x48
 #define _EOF    0xC7
+#define _GTIME  0x2C
+#define _GDATE  0x2A
 
 #define perror(x) {printf("*** ");printf(x);printf("\r\n");}
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -59,6 +63,8 @@ struct editorConfig {
   int numrows;
   erow *row;
   char *filename;
+  char statusmsg[80];
+  time_t statusmsg_time;
 };
 
 struct editorConfig E;
@@ -105,6 +111,24 @@ int close(int fp) {
 void exit(int code) {
   regs.Bytes.B = code;
   DosCall(_TERM, &regs, REGS_MAIN, REGS_NONE);
+}
+
+time_t _time() {
+  char h, m, s, mo, d;
+  int y;
+
+  DosCall(_GTIME, &regs, REGS_MAIN, REGS_MAIN);
+  h = regs.Bytes.H;
+  m = regs.Bytes.L;
+  s = regs.Bytes.D;
+
+  DosCall(_GDATE, &regs, REGS_MAIN, REGS_MAIN);
+  y = regs.Words.HL;
+  mo = regs.Bytes.D;
+  d = regs.Bytes.E;
+
+  /* XXX Calculating basic not acurate timestamp. */
+  return (((( ((y-1970)*365) + (mo * 30) + d ) * 24 + h) * 60 + m) * 60 + s);
 }
 
 void die(const char *s) {
@@ -261,7 +285,7 @@ void init() {
   // Get window size
   if (getWindowSize(&E.screenrows, &E.screencols) == -1)
     die("ERROR: Could not get screen size");
-  E.screenrows -= 1;
+  E.screenrows -= 2;
   gotoxy(0, 0);
 
   E.cx = 0;
@@ -272,6 +296,8 @@ void init() {
   E.numrows = 0;
   E.row = NULL;
   E.filename = NULL;
+  E.statusmsg[0] = '\0';
+  E.statusmsg_time = 0;
 }
 
 
@@ -325,7 +351,6 @@ void editorDrawRows(struct abuf *ab) {
   char welcome[80];
   int welcomelen;
   int padding;
-  char debug[80];
   int filerow;
 
   for (y = 0; y < E.screenrows; y++) {
@@ -371,7 +396,7 @@ void editorDrawStatusBar(struct abuf *ab) {
   abAppend(ab, status, len);
  
   while (len < E.screencols) {
-    if (E.screencols - len == rlen) {
+    if (E.screencols - len - 1 == rlen) {
       abAppend(ab, rstatus, rlen);
       break;
     } else {
@@ -380,6 +405,17 @@ void editorDrawStatusBar(struct abuf *ab) {
     }
   }
   //abAppend(ab, "\x1b[m", 3); // MSX doesn't support inverted text
+  abAppend(ab, "\r\n", 2);
+}
+
+void editorDrawMessageBar(struct abuf *ab) {
+  int msglen;
+
+  abAppend(ab, "\33K", 2);
+  msglen = strlen(E.statusmsg);
+  if (msglen > E.screencols) msglen = E.screencols;
+  if (msglen && _time() - E.statusmsg_time < 5)
+    abAppend(ab, E.statusmsg, msglen);
 }
 
 void printBuff(struct abuf *ab) {
@@ -400,6 +436,7 @@ void editorRefreshScreen() {
 
   editorDrawRows(&ab);
   editorDrawStatusBar(&ab);
+  editorDrawMessageBar(&ab);
 
   abAppend(&ab,"\33Y", 2);
   sprintf(buf, "%c", (E.cy - E.rowoff) + 32);
@@ -412,6 +449,14 @@ void editorRefreshScreen() {
 
   printBuff(&ab);
   abFree(&ab);
+}
+
+void editorSetStatusMessage(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vsprintf(E.statusmsg, fmt, ap);
+  va_end(ap);
+  E.statusmsg_time = _time();
 }
 
 /*** input ***/
@@ -510,7 +555,6 @@ void editorProcessKeypress() {
 /*** main ***/
 
 int main(char **argv, int argc) {
-  char c;
   int i;
   char filename[13] ;
   *filename = '\0';
@@ -535,6 +579,8 @@ int main(char **argv, int argc) {
   if (filename[0] != '\0') {
     editorOpen(filename);
   }
+
+  editorSetStatusMessage("HELP: Ctrl-Q = quit");
 
   while (1) {
     editorRefreshScreen();
