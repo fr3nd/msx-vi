@@ -58,11 +58,20 @@ struct editorConfig {
   int screencols;
   int numrows;
   erow *row;
+  char *filename;
 };
 
 struct editorConfig E;
 
 /*** functions ***/
+
+// https://stackoverflow.com/questions/252782/strdup-what-does-it-do-in-c
+char *strdup (const char *s) {
+  char *d = malloc (strlen (s) + 1);   // Space for length plus nul
+  if (d == NULL) return NULL;          // No memory
+  strcpy (d,s);                        // Copy the characters
+  return d;                            // Return the new string
+}
 
 void gotoxy(int x, int y) {
   regs.Bytes.H = x+1;
@@ -223,6 +232,9 @@ void editorOpen(char *filename) {
   int fp;
   char buffer[FILE_BUFFER_LENGTH+1];
   //int size_read;
+  
+  free(E.filename);
+  E.filename = strdup(filename);
 
   fp  = open(filename, O_RDONLY);
   if (fp < 0) die("Error opening file");
@@ -247,7 +259,9 @@ void init() {
   BiosCall(_INITXT, &regs, REGS_NONE);
 
   // Get window size
-  if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
+  if (getWindowSize(&E.screenrows, &E.screencols) == -1)
+    die("ERROR: Could not get screen size");
+  E.screenrows -= 1;
   gotoxy(0, 0);
 
   E.cx = 0;
@@ -257,6 +271,7 @@ void init() {
   E.coloff = 0;
   E.numrows = 0;
   E.row = NULL;
+  E.filename = NULL;
 }
 
 
@@ -340,10 +355,31 @@ void editorDrawRows(struct abuf *ab) {
     }
 
     abAppend(ab, "\33K", 2);
-    if (y < E.screenrows - 1) {
-      abAppend(ab, "\n\r", 2);
+    abAppend(ab, "\n\r", 2);
+  }
+}
+
+void editorDrawStatusBar(struct abuf *ab) {
+  char status[80], rstatus[80];
+  int len, rlen;
+
+  //abAppend(ab, "\x1b[7m", 4); // MSX doesn't support inverted text
+  
+  len = sprintf(status, "%.20s - %d lines", E.filename ? E.filename : "[No Name]", E.numrows);
+  rlen = sprintf(rstatus, "%d/%d", E.cy + 1, E.numrows);
+  if (len > E.screencols) len = E.screencols;
+  abAppend(ab, status, len);
+ 
+  while (len < E.screencols) {
+    if (E.screencols - len == rlen) {
+      abAppend(ab, rstatus, rlen);
+      break;
+    } else {
+      abAppend(ab, " ", 1);
+      len++;
     }
   }
+  //abAppend(ab, "\x1b[m", 3); // MSX doesn't support inverted text
 }
 
 void printBuff(struct abuf *ab) {
@@ -361,7 +397,9 @@ void editorRefreshScreen() {
 
   abAppend(&ab, "\33x5", 3); // Hide cursor
   abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
+
   editorDrawRows(&ab);
+  editorDrawStatusBar(&ab);
 
   abAppend(&ab,"\33Y", 2);
   sprintf(buf, "%c", (E.cy - E.rowoff) + 32);
