@@ -31,6 +31,7 @@ Z80_registers regs;
 #define  O_RDWR     0x00
 #define  O_INHERIT  0x04
 
+/* DOS calls */
 #define _TERM0  0x00
 #define _TERM   0x62
 #define _DOSVER 0x6F
@@ -39,9 +40,13 @@ Z80_registers regs;
 #define _OPEN   0x43
 #define _CLOSE  0x45
 #define _READ   0x48
+#define _WRITE  0x49
 #define _EOF    0xC7
 #define _GTIME  0x2C
 #define _GDATE  0x2A
+
+/* BIOS calls */
+#define _CHGET  0x9F
 
 #define perror(x) {printf("*** ");printf(x);printf("\r\n");}
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -74,6 +79,12 @@ struct editorConfig E;
 /*** functions ***/
 
 // https://stackoverflow.com/questions/252782/strdup-what-does-it-do-in-c
+
+char _getchar(void) {
+  BiosCall(_CHGET, &regs, REGS_AF);
+  return regs.Bytes.A;
+}
+
 char *strdup (const char *s) {
   char *d = malloc (strlen (s) + 1);   // Space for length plus nul
   if (d == NULL) return NULL;          // No memory
@@ -241,6 +252,19 @@ int read(char* buf, uint size, byte fp) {
   }
 }
 
+int write(char* buf, uint size, byte fp) {
+  regs.Bytes.B = fp;
+  regs.UWords.DE = (int)buf;
+  regs.UWords.HL = size;
+  DosCall(_WRITE, &regs, REGS_MAIN, REGS_MAIN);
+
+  if (regs.Bytes.A == 0) {
+    return regs.UWords.HL;
+  } else {
+    return -1;
+  }
+}
+
 //* Read one char from file
 char fgetc(int fp) {
   char c[1];
@@ -273,6 +297,29 @@ char *fgets(char *s, int n, int fp) {
   return (c == EOF && cptr == s)? NULL: s;
 }
 
+char *editorRowsToString(int *buflen) {
+  int totlen = 0;
+  int j;
+  char *buf;
+  char *p;
+
+  for (j = 0; j < E.numrows; j++)
+    totlen += E.row[j].size + 1;
+  *buflen = totlen;
+  buf = malloc(totlen);
+  p = buf;
+  for (j = 0; j < E.numrows; j++) {
+    memcpy(p, E.row[j].chars, E.row[j].size);
+    //strcpy(p, E.row[j].chars);
+    p += E.row[j].size;
+    *p = '\n';
+    p++;
+    *p = '\r';
+    p++;
+  }
+  return buf;
+}
+
 void editorOpen(char *filename) {
   int fp;
   char buffer[FILE_BUFFER_LENGTH+1];
@@ -288,6 +335,20 @@ void editorOpen(char *filename) {
   }
 
   close(fp);
+}
+
+void editorSave() {
+  int len;
+  char *buf;
+  int fd;
+  int ret;
+
+  if (E.filename == NULL) return;
+  buf = editorRowsToString(&len);
+  fd = open(E.filename, O_RDWR);
+  ret = write(buf, len, fd);
+  close(fd);
+  free(buf);
 }
 
 void init() {
@@ -483,7 +544,7 @@ void editorSetStatusMessage(const char *fmt, ...) {
 /*** input ***/
 
 char editorReadKey() {
-  return getchar();
+  return _getchar();
 }
 
 void editorMoveCursor(char key) {
@@ -554,6 +615,9 @@ void editorProcessKeypress() {
       gotoxy(0, 0);
       exit(0);
       break;
+    case CTRL_KEY('s'):
+      editorSave();
+      break;
     case HOME_KEY:
       E.cx = 0;
       break;
@@ -593,7 +657,7 @@ void editorProcessKeypress() {
 
 void debug_keys(void) {
   char c;
-  c = getchar();
+  c = _getchar();
   printf("%d\n\r", c);
 }
 
@@ -602,7 +666,7 @@ int main(char **argv, int argc) {
   char filename[13] ;
   *filename = '\0';
 
-  //while (1) debug_keys();
+  /*while (1) debug_keys();*/
 
   init();
 
