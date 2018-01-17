@@ -11,6 +11,7 @@ Z80_registers regs;
 
 #define KILO_VERSION "0.0.1"
 #define KILO_TAB_STOP 8
+#define KILO_QUIT_TIMES 3
 #define FILE_BUFFER_LENGTH 512
 
 #define BACKSPACE   8
@@ -625,6 +626,7 @@ void editorMoveCursor(char key) {
 }
 
 void editorProcessKeypress() {
+  static int quit_times = KILO_QUIT_TIMES;
   char c = editorReadKey();
   //printf("%d", c); // for getting key code
   switch (c) {
@@ -632,6 +634,12 @@ void editorProcessKeypress() {
       // TODO
       break;
     case CTRL_KEY('q'):
+      if (E.dirty && quit_times > 0) {
+        editorSetStatusMessage("WARNING!!! File has unsaved changes. "
+          "Press Ctrl-Q %d more times to quit.", quit_times);
+        quit_times--;
+        return;
+      }
       cls();
       gotoxy(0, 0);
       exit(0);
@@ -672,6 +680,7 @@ void editorProcessKeypress() {
       editorInsertChar(c);
       break;
   }
+  quit_times = KILO_QUIT_TIMES;
 }
 
 /*** main ***/
