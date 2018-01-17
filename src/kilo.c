@@ -69,6 +69,7 @@ struct editorConfig {
   int screencols;
   int numrows;
   erow *row;
+  int dirty;
   char *filename;
   char statusmsg[80];
   time_t statusmsg_time;
@@ -220,6 +221,7 @@ void editorAppendRow(char *s, size_t len) {
   E.row[at].render = NULL;
   editorUpdateRow(&E.row[at]);
   E.numrows++;
+  E.dirty++;
 }
 
 void editorRowInsertChar(erow *row, int at, int c) {
@@ -229,6 +231,7 @@ void editorRowInsertChar(erow *row, int at, int c) {
   row->size++;
   row->chars[at] = c;
   editorUpdateRow(row);
+  E.dirty++;
 }
 
 /*** editor operations ***/
@@ -339,6 +342,7 @@ void editorOpen(char *filename) {
   }
 
   close(fp);
+  E.dirty = 0;
 }
 
 void editorSave() {
@@ -391,6 +395,7 @@ void init() {
   E.coloff = 0;
   E.numrows = 0;
   E.row = NULL;
+  E.dirty = 0;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
@@ -486,7 +491,9 @@ void editorDrawStatusBar(struct abuf *ab) {
 
   //abAppend(ab, "\x1b[7m", 4); // MSX doesn't support inverted text
   
-  len = sprintf(status, "%.20s - %d lines", E.filename ? E.filename : "[No Name]", E.numrows);
+  len = sprintf(status, "%.20s - %d lines %s",
+    E.filename ? E.filename : "[No Name]", E.numrows,
+    E.dirty ? "(modified)" : "");
   rlen = sprintf(rstatus, "%d/%d", E.cy + 1, E.numrows);
   if (len > E.screencols) len = E.screencols;
   abAppend(ab, status, len);
