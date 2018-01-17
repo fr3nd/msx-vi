@@ -76,6 +76,10 @@ struct editorConfig {
 
 struct editorConfig E;
 
+/*** prototypes ***/
+
+void editorSetStatusMessage(const char *fmt, ...);
+
 /*** functions ***/
 
 // https://stackoverflow.com/questions/252782/strdup-what-does-it-do-in-c
@@ -346,9 +350,19 @@ void editorSave() {
   if (E.filename == NULL) return;
   buf = editorRowsToString(&len);
   fd = open(E.filename, O_RDWR);
-  ret = write(buf, len, fd);
-  close(fd);
+  if (fd != -1) {
+    if (write(buf, len, fd) == len) {
+      close(fd);
+      free(buf);
+      editorSetStatusMessage("%d bytes written to disk", len);
+      return;
+    }
+    close(fd);
+  }
   free(buf);
+  // TODO: Implement error message
+  //editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
+  editorSetStatusMessage("Can't save! I/O error");
 }
 
 void init() {
@@ -689,7 +703,7 @@ int main(char **argv, int argc) {
     editorOpen(filename);
   }
 
-  editorSetStatusMessage("HELP: Ctrl-Q = quit");
+  editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
 
   while (1) {
     editorRefreshScreen();
