@@ -208,11 +208,11 @@ void editorUpdateRow(erow *row) {
   row->rsize = idx;
 }
 
-void editorAppendRow(char *s, size_t len) {
-  int at;
-
+void editorInsertRow(int at, char *s, size_t len) {
+  if (at < 0 || at > E.numrows) return;
   E.row = realloc(E.row, sizeof(erow) * (E.numrows + 1));
-  at = E.numrows;
+  memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - at));
+
   E.row[at].size = len;
   E.row[at].chars = malloc(len + 1);
   memcpy(E.row[at].chars, s, len);
@@ -268,10 +268,25 @@ void editorRowDelChar(erow *row, int at) {
 
 void editorInsertChar(int c) {
   if (E.cy == E.numrows) {
-    editorAppendRow("", 0);
+    editorInsertRow(E.numrows, "", 0);
   }
   editorRowInsertChar(&E.row[E.cy], E.cx, c);
   E.cx++;
+}
+
+void editorInsertNewline() {
+  if (E.cx == 0) {
+    editorInsertRow(E.cy, "", 0);
+  } else {
+    erow *row = &E.row[E.cy];
+    editorInsertRow(E.cy + 1, &row->chars[E.cx], row->size - E.cx);
+    row = &E.row[E.cy];
+    row->size = E.cx;
+    row->chars[row->size] = '\0';
+    editorUpdateRow(row);
+  }
+  E.cy++;
+  E.cx = 0;
 }
 
 void editorDelChar() {
@@ -377,15 +392,14 @@ char *editorRowsToString(int *buflen) {
 void editorOpen(char *filename) {
   int fp;
   char buffer[FILE_BUFFER_LENGTH+1];
-  //int size_read;
-  
+
   free(E.filename);
   E.filename = strdup(filename);
 
   fp  = open(filename, O_RDONLY);
   if (fp < 0) die("Error opening file");
   while (fgets(buffer, FILE_BUFFER_LENGTH, fp) != NULL) {
-    editorAppendRow(buffer, strlen(buffer));
+    editorInsertRow(E.numrows, buffer, strlen(buffer));
   }
 
   close(fp);
@@ -678,7 +692,7 @@ void editorProcessKeypress() {
   //printf("%d", c); // for getting key code
   switch (c) {
     case '\r':
-      // TODO
+      editorInsertNewline();
       break;
     case CTRL_KEY('q'):
       if (E.dirty && quit_times > 0) {
