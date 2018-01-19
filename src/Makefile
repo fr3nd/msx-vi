@@ -10,8 +10,8 @@ INCLUDEDIR = include
 
 # Uncomment the CCFLAGS variable depending on your needs
 #CCFLAGS = --code-loc 0x0178 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) include/crt0msx_msxdos_advanced.rel include/putchar.rel include/getchar.rel include/dos2.rel
-#CCFLAGS = --code-loc 0x0107 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) include/crt0msx_msxdos.rel include/putchar.rel include/getchar.rel include/dos2.rel
-CCFLAGS := --code-loc 0x0178 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) include/crt0msx_msxdos_advanced.rel include/asm.lib include/getchar.rel include/putchar.rel include/heap.rel
+#CCFLAGS = --code-loc 0x0107 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) include/crt0msx_msxdos.rel
+CCFLAGS := --code-loc 0x0178 --data-loc 0 --disable-warning 196 -mz80 --no-std-crt0 -I$(INCLUDEDIR) $(INCLUDEDIR)/crt0msx_msxdos_advanced.rel $(INCLUDEDIR)/VDPgraph2.rel #include/heap.rel
 
 all: hex2bin libs $(COM_FILES)
 
@@ -19,10 +19,10 @@ hex2bin:
 	$(MAKE) -C $(HEX2BINDIR)
 
 libs:
-	$(MAKE) -C include
+	$(MAKE) -C $(INCLUDEDIR)
 
 libsclean:
-	$(MAKE) -C include clean
+	$(MAKE) -C $(INCLUDEDIR) clean
 
 %.ihx: %.c
 	$(CC) $(CCFLAGS) $^
@@ -33,7 +33,8 @@ libsclean:
 	cp $@ bin/
 
 clean: libsclean
-	rm -f *.com *.rel *.asm *.lst *.sym *.bin *.ihx *.lk *.map *.noi
+	find *.rel -type f -not -name 'VDP*' -delete || true
+	rm -f *.com *.asm *.lst *.sym *.bin *.ihx *.lk *.map *.noi
 	rm -rf bin/
 
 test:
