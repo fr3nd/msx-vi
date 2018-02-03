@@ -609,7 +609,6 @@ void putchar(char c) {
       vdptask.X2 = cursor_pos.x*CHAR_SIZEX*2;
       vdptask.Y2 = cursor_pos.y*CHAR_SIZEY;
       vdptask.s0 = 0;
-      vdptask.s0 = 0;
       vdptask.DI = 0;
       vdptask.LOP = LOGICAL_IMP;
       fLMMM(&vdptask);
