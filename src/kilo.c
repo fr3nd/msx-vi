@@ -20,7 +20,7 @@
 #define SCREEN7_BACKBUF 0x0D400
 #define SCREEN7_OFFSETX 0
 #define SCREEN7_OFFSETY 0
-#define SCREEN7_SIZEX 256
+#define SCREEN7_SIZEX 512
 #define SCREEN7_SIZEY 212
 #define CHAR_SIZEX 3
 #define CHAR_SIZEY 8
@@ -656,7 +656,7 @@ void vputchar_old(char c) {
           if (p1 == 0) p1 = bgcolor;
           if (p2 == 0) p2 = bgcolor;
           p3 = (p1 << 4) + p2;
-          vpoke((SCREEN7_OFFSETX + (SCREEN7_OFFSETY*SCREEN7_SIZEX)) + (x + (y*SCREEN7_SIZEX)) + (cursor_pos.x*CHAR_SIZEX + cursor_pos.y*SCREEN7_SIZEX*CHAR_SIZEY), p3);
+          vpoke((SCREEN7_OFFSETX + (SCREEN7_OFFSETY*SCREEN7_SIZEX/2)) + (x + (y*SCREEN7_SIZEX/2)) + (cursor_pos.x*CHAR_SIZEX + cursor_pos.y*SCREEN7_SIZEX/2*CHAR_SIZEY), p3);
         }
       }
       cursor_pos.x++;
@@ -682,7 +682,7 @@ void vputchar_vram(unsigned char c, unsigned int addr) {
       if (p1 == 0) p1 = bgcolor;
       if (p2 == 0) p2 = bgcolor;
       p3 = (p1 << 4) + p2;
-      vpoke(addr + x + y*SCREEN7_SIZEX ,p3);
+      vpoke(addr + x + y*SCREEN7_SIZEX/2 ,p3);
     }
   }
 }
@@ -1301,7 +1301,7 @@ void init() {
       y++;
       x=0;
     }
-    vputchar_vram(n, SCREEN7_BACKBUF + x*CHAR_SIZEX + y*SCREEN7_SIZEX*CHAR_SIZEY);
+    vputchar_vram(n, SCREEN7_BACKBUF + x*CHAR_SIZEX + y*SCREEN7_SIZEX/2*CHAR_SIZEY);
     x++;
   }
 
