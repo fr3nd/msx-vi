@@ -427,7 +427,7 @@ int getCursorPosition(int *rows, int *cols) {
 }
 
 int getWindowSize(int *rows, int *cols) {
-  *rows = 24;
+  *rows = 26;
   *cols = 85;
   return 0;
 }
