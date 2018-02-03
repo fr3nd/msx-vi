@@ -624,59 +624,6 @@ void putchar(char c) {
   }
 }
 
-void vputchar_old(char c) {
-  int x,y;
-  unsigned char b, p1, p2, p3;
-
-  if (escape_sequence == 1) {
-    // If previous char was an escape sequence \33
-    if (c == 'K') {
-      // Delete everything from the cursor position to the end of line
-      escape_sequence = 0;
-      while (cursor_pos.x < E.screencols) {
-        putchar(' ');
-      }
-    } else if (c == 'x') {
-      // Cursor
-      // TODO
-    } else if (c == 'y') {
-      // Cursor
-      // TODO
-    } else if (c == 'H') {
-      // Move to top left corner
-      gotoxy(0, 0);
-      escape_sequence = 0;
-    } else if (c == 'Y') {
-      // Move cursor to xy position
-      // TODO
-    } else {
-      escape_sequence = 0;
-    }
-  } else {
-    // If previous char wasn't an escape sequence \33
-    if (c >= 0x20) {
-      for (y=0; y<CHAR_SIZEY; y++) {
-        b = char_table[c*CHAR_SIZEY + y];
-        for (x=0; x<CHAR_SIZEX; x++) {
-          p1 = ((b >> (CHAR_SIZEX*2)-x*2+1) & 1U) * fgcolor;
-          p2 = ((b >> (CHAR_SIZEX*2)-x*2) & 1U) * fgcolor;
-          if (p1 == 0) p1 = bgcolor;
-          if (p2 == 0) p2 = bgcolor;
-          p3 = (p1 << 4) + p2;
-          vpoke((SCREEN7_OFFSETX + (SCREEN7_OFFSETY*SCREEN7_SIZEX/2)) + (x + (y*SCREEN7_SIZEX/2)) + (cursor_pos.x*CHAR_SIZEX + cursor_pos.y*SCREEN7_SIZEX/2*CHAR_SIZEY), p3);
-        }
-      }
-      cursor_pos.x++;
-    } else if (c == '\n') {
-      cursor_pos.y++;
-    } else if (c == '\r') {
-      cursor_pos.x = 0;
-    } else if (c == '\33') {
-      escape_sequence = 1;
-    }
-  }
-}
-
 void vputchar_vram(unsigned char c, unsigned int addr) {
   int x,y;
   unsigned char b, p1, p2, p3;
