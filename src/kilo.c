@@ -568,9 +568,17 @@ void putchar(char c) {
     if (c == 'K') {
       // Delete everything from the cursor position to the end of line
       escape_sequence = 0;
-      while (cursor_pos.x < E.screencols) {
-        putchar(' ');
-      }
+
+      vdptask.X2 = cursor_pos.x*CHAR_SIZEX*2;
+      vdptask.Y2 = cursor_pos.y*CHAR_SIZEY;
+      vdptask.DX = SCREEN7_SIZEX - cursor_pos.x*CHAR_SIZEX*2;
+      vdptask.DY = CHAR_SIZEY;
+      vdptask.s0 = 0x11;
+      vdptask.DI = 0;
+      vdptask.LOP = opHMMV;
+      fLMMM(&vdptask);
+
+      cursor_pos.x = E.screencols;
     } else if (c == 'x') {
       // Cursor
       // TODO
