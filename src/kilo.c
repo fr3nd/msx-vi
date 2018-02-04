@@ -8,9 +8,9 @@
 #include "heap.h"
 #include "VDPgraph2.h"
 
-#define KILO_VERSION "0.0.1"
-#define KILO_TAB_STOP 8
-#define KILO_QUIT_TIMES 3
+#define MSXVI_VERSION "0.0.1"
+#define MSXVI_TAB_STOP 8
+#define MSXVI_QUIT_TIMES 3
 #define FILE_BUFFER_LENGTH 512
 
 #define SCREEN7_PATTERN 0x00000
@@ -674,7 +674,7 @@ int editorRowCxToRx(erow *row, int cx) {
   int j;
   for (j = 0; j < cx; j++) {
     if (row->chars[j] == '\t')
-      rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+      rx += (MSXVI_TAB_STOP - 1) - (rx % MSXVI_TAB_STOP);
     rx++;
   }
   return rx;
@@ -689,12 +689,12 @@ void editorUpdateRow(erow *row) {
     if (row->chars[j] == '\t') tabs++;
 
   free(row->render);
-  row->render = malloc(row->size + tabs*(KILO_TAB_STOP - 1) + 1);
+  row->render = malloc(row->size + tabs*(MSXVI_TAB_STOP - 1) + 1);
 
   for (j = 0; j < row->size; j++) {
     if (row->chars[j] == '\t') {
       row->render[idx++] = ' ';
-      while (idx % KILO_TAB_STOP != 0) row->render[idx++] = ' ';
+      while (idx % MSXVI_TAB_STOP != 0) row->render[idx++] = ' ';
     } else {
       row->render[idx++] = row->chars[j];
     }
@@ -1006,7 +1006,7 @@ void editorDrawRows(struct abuf *ab) {
     if (filerow >= E.numrows) {
       if (E.numrows == 0 && y == E.screenrows / 3) {
 
-        sprintf(welcome, "Kilo editor -- version %s", KILO_VERSION);
+        sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
         welcomelen = strlen(welcome);
 
         padding = (E.screencols - welcomelen) / 2;
@@ -1173,7 +1173,7 @@ void editorMoveCursor(char key) {
 }
 
 void editorProcessKeypress() {
-  static int quit_times = KILO_QUIT_TIMES;
+  static int quit_times = MSXVI_QUIT_TIMES;
   char c = editorReadKey();
   //printf("%d", c); // for getting key code
   switch (c) {
@@ -1228,7 +1228,7 @@ void editorProcessKeypress() {
       editorInsertChar(c);
       break;
   }
-  quit_times = KILO_QUIT_TIMES;
+  quit_times = MSXVI_QUIT_TIMES;
 }
 
 /*** input }}} ***/
