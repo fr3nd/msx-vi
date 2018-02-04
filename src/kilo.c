@@ -612,7 +612,6 @@ void putchar(char c) {
       escape_sequence = 0;
     } else if (c == 'Y') {
       // Move cursor to xy position
-      // TODO
       escape_sequence_2 = 2;
       escape_sequence_y = 127;
     } else if (escape_sequence_2 == 2) {
