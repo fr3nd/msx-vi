@@ -168,6 +168,8 @@ struct coord cursor_pos;
 struct editorConfig E;
 unsigned char char_table[8*255];
 char escape_sequence = 0;
+char escape_sequence_2 = 0;
+char escape_sequence_y = 0;
 
 
 /*** end global variables }}} ***/
@@ -592,6 +594,18 @@ void putchar(char c) {
     } else if (c == 'Y') {
       // Move cursor to xy position
       // TODO
+      escape_sequence_2 = 1;
+      escape_sequence_y = 127;
+    } else if (escape_sequence_2 == 1) {
+      if (escape_sequence_y == 127) {
+        escape_sequence_y = c;
+      } else {
+        gotoxy(c-32, escape_sequence_y-32);
+        escape_sequence_2 = 0;
+        escape_sequence = 0;
+        escape_sequence_y = 0;
+      }
+
     } else {
       escape_sequence = 0;
     }
@@ -1047,7 +1061,7 @@ void editorDrawStatusBar(struct abuf *ab) {
 void editorDrawMessageBar(struct abuf *ab) {
   int msglen;
 
-  abAppend(ab, "\33K", 2);
+  abAppend(ab, "\33K\r", 3);
   msglen = strlen(E.statusmsg);
   if (msglen > E.screencols) msglen = E.screencols;
   if (msglen && _time() - E.statusmsg_time < 5)
