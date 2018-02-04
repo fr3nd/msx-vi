@@ -163,6 +163,7 @@ struct coord {
 
 char fgcolor;
 char bgcolor;
+char inverted;
 
 struct coord cursor_pos;
 struct editorConfig E;
@@ -587,9 +588,19 @@ void putchar(char c) {
     } else if (c == 'm') {
       // Color
       // Based on ANSI but different
+      // Colors from 0 to 15 (+32)
+      // inverted 16+32
       escape_sequence_2 = 1;
     } else if (escape_sequence_2 == 1) {
-      fgcolor = c-32;
+      if (c-32 <= 15) {
+        fgcolor = c-32;
+      } else {
+        if (inverted == 0) {
+          inverted = 1;
+        } else {
+          inverted = 0;
+        }
+      }
       escape_sequence_2 = 0;
       escape_sequence = 0;
     } else if (c == 'y') {
@@ -642,7 +653,11 @@ void putchar(char c) {
       vdptask.Y2 = cursor_pos.y*CHAR_SIZEY;
       vdptask.s0 = 0;
       vdptask.DI = 0;
-      vdptask.LOP = LOGICAL_AND;
+      if (inverted == 0) {
+        vdptask.LOP = LOGICAL_AND;
+      } else {
+        vdptask.LOP = LOGICAL_XOR;
+      }
       fLMMM(&vdptask);
 
       cursor_pos.x++;
@@ -1054,7 +1069,7 @@ void editorDrawStatusBar(struct abuf *ab) {
   char status[80], rstatus[80];
   int len, rlen;
 
-  //abAppend(ab, "\x1b[7m", 4); // MSX doesn't support inverted text
+  abAppend(ab, "\33m0", 3); // Inverted text
   
   len = sprintf(status, "%.20s - %d lines %s",
     E.filename ? E.filename : "[No Name]", E.numrows,
@@ -1072,7 +1087,7 @@ void editorDrawStatusBar(struct abuf *ab) {
       len++;
     }
   }
-  //abAppend(ab, "\x1b[m", 3); // MSX doesn't support inverted text
+  abAppend(ab, "\33m0", 3); // Inverted text
   abAppend(ab, "\r\n", 2);
 }
 
@@ -1279,6 +1294,7 @@ void init() {
   // Set base colors
   fgcolor = WHITE;
   bgcolor = BLACK;
+  inverted = 0;
 
   // Put all chars in backbufffer
   y = -1;
