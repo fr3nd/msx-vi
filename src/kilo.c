@@ -584,6 +584,14 @@ void putchar(char c) {
     } else if (c == 'x') {
       // Cursor
       // TODO
+    } else if (c == 'm') {
+      // Color
+      // Based on ANSI but different
+      escape_sequence_2 = 1;
+    } else if (escape_sequence_2 == 1) {
+      fgcolor = c-32;
+      escape_sequence_2 = 0;
+      escape_sequence = 0;
     } else if (c == 'y') {
       // Cursor
       // TODO
@@ -594,9 +602,9 @@ void putchar(char c) {
     } else if (c == 'Y') {
       // Move cursor to xy position
       // TODO
-      escape_sequence_2 = 1;
+      escape_sequence_2 = 2;
       escape_sequence_y = 127;
-    } else if (escape_sequence_2 == 1) {
+    } else if (escape_sequence_2 == 2) {
       if (escape_sequence_y == 127) {
         escape_sequence_y = c;
       } else {
@@ -612,10 +620,20 @@ void putchar(char c) {
   } else {
     // If previous char wasn't an escape sequence \33
     if (c >= 0x20) {
-      // TODO color
       n = c%BACKBUFFER_LENGTH;
       m = c/BACKBUFFER_LENGTH;
 
+      // Set background
+      vdptask.X2 = cursor_pos.x*CHAR_SIZEX*2;
+      vdptask.Y2 = cursor_pos.y*CHAR_SIZEY;
+      vdptask.DX = CHAR_SIZEX*2;
+      vdptask.DY = CHAR_SIZEY;
+      vdptask.s0 = (fgcolor<<4) + fgcolor;
+      vdptask.DI = 0;
+      vdptask.LOP = opHMMV;
+      fLMMM(&vdptask);
+
+      // Set char
       vdptask.X = n*CHAR_SIZEX*2;
       vdptask.Y = 212+m*CHAR_SIZEY;
       vdptask.DX = CHAR_SIZEX*2;
@@ -624,7 +642,7 @@ void putchar(char c) {
       vdptask.Y2 = cursor_pos.y*CHAR_SIZEY;
       vdptask.s0 = 0;
       vdptask.DI = 0;
-      vdptask.LOP = LOGICAL_IMP;
+      vdptask.LOP = LOGICAL_AND;
       fLMMM(&vdptask);
 
       cursor_pos.x++;
@@ -1006,7 +1024,7 @@ void editorDrawRows(struct abuf *ab) {
     if (filerow >= E.numrows) {
       if (E.numrows == 0 && y == E.screenrows / 3) {
 
-        sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
+        sprintf(welcome, "\33m%cMSX\33m%c vi -- version %s",LIGHT_BLUE+32 , WHITE+32, MSXVI_VERSION);
         welcomelen = strlen(welcome);
 
         padding = (E.screencols - welcomelen) / 2;
