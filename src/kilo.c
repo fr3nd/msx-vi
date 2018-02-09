@@ -19,7 +19,7 @@
 #define SCREEN7_SPRATTR 0x0FA00
 #define SCREEN7_BACKBUF 0x0D400
 #define SCREEN7_OFFSETX 0
-#define SCREEN7_OFFSETY 0
+#define SCREEN7_OFFSETY 1
 #define SCREEN7_SIZEX 512
 #define SCREEN7_SIZEY 212
 #define CHAR_SIZEX 3
@@ -572,8 +572,8 @@ void putchar(char c) {
       // Delete everything from the cursor position to the end of line
       escape_sequence = 0;
 
-      vdptask.X2 = cursor_pos.x*CHAR_SIZEX*2;
-      vdptask.Y2 = cursor_pos.y*CHAR_SIZEY;
+      vdptask.X2 = SCREEN7_OFFSETX + cursor_pos.x*CHAR_SIZEX*2;
+      vdptask.Y2 = SCREEN7_OFFSETY + cursor_pos.y*CHAR_SIZEY;
       vdptask.DX = SCREEN7_SIZEX - cursor_pos.x*CHAR_SIZEX*2;
       vdptask.DY = CHAR_SIZEY;
       vdptask.s0 = 0x11;
@@ -634,8 +634,8 @@ void putchar(char c) {
       m = c/BACKBUFFER_LENGTH;
 
       // Set background
-      vdptask.X2 = cursor_pos.x*CHAR_SIZEX*2;
-      vdptask.Y2 = cursor_pos.y*CHAR_SIZEY;
+      vdptask.X2 = SCREEN7_OFFSETX + cursor_pos.x*CHAR_SIZEX*2;
+      vdptask.Y2 = SCREEN7_OFFSETY + cursor_pos.y*CHAR_SIZEY;
       vdptask.DX = CHAR_SIZEX*2;
       vdptask.DY = CHAR_SIZEY;
       vdptask.s0 = (fgcolor<<4) + fgcolor;
@@ -648,8 +648,8 @@ void putchar(char c) {
       vdptask.Y = 212+m*CHAR_SIZEY;
       vdptask.DX = CHAR_SIZEX*2;
       vdptask.DY = CHAR_SIZEY;
-      vdptask.X2 = cursor_pos.x*CHAR_SIZEX*2;
-      vdptask.Y2 = cursor_pos.y*CHAR_SIZEY;
+      vdptask.X2 = SCREEN7_OFFSETX + cursor_pos.x*CHAR_SIZEX*2;
+      vdptask.Y2 = SCREEN7_OFFSETY + cursor_pos.y*CHAR_SIZEY;
       vdptask.s0 = 0;
       vdptask.DI = 0;
       if (inverted == 0) {
