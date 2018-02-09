@@ -884,7 +884,6 @@ int write(char* buf, unsigned int size, char fp) __naked {
 char fgetc(int fp) {
   char c[1];
 
-  printf(".");
   if ( read(c, sizeof(char), fp) != sizeof(char) ) {
     return EOF;
   } else {
