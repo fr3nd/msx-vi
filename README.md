@@ -25,6 +25,10 @@ I started writing code, but a text editor is way more complex than it looks. Mem
 
 Few months later I discovered the [Build Your Own Text Editor](https://viewsourcecode.org/snaptoken/kilo/index.html) tutorial. It is a step by step guide on how to write Antirez's [kilo](http://antirez.com/news/108) text editor. I started reading it and I decided to try again to write the vi clone for MSX.
 
+## Download
+
+* https://github.com/fr3nd/msx-vi/releases
+
 ## Online Emulator
 
 Try it online:
