@@ -1023,9 +1023,6 @@ void editorProcessKeypress() {
   //printf("%d", c); // for getting key code
   if (E.mode == M_COMMAND) {
     switch (c) {
-      /*case CTRL_KEY('s'):*/
-      /*  editorSave();*/
-      /*  break;*/
       case CTRL_KEY('d'):
         editorMoveCursor(PAGE_DOWN);
         break;
