@@ -8,7 +8,6 @@
 
 #define MSXVI_VERSION "0.0.1a"
 #define MSXVI_TAB_STOP 8
-#define MSXVI_QUIT_TIMES 3
 #define FILE_BUFFER_LENGTH 512
 
 #define BACKSPACE   8
@@ -22,6 +21,10 @@
 #define HOME_KEY    11
 #define END_KEY     -3 // MSX doesn't have this key
 #define DEL_KEY     127
+
+/* vi modes */
+#define M_COMMAND 0
+#define M_INSERT  1
 
 /* open/creat flags */
 #define  O_RDONLY   0x01
@@ -91,6 +94,7 @@ struct editorConfig {
   char *filename;
   char statusmsg[80];
   time_t statusmsg_time;
+  char mode;
 };
 
 typedef struct {
@@ -672,21 +676,17 @@ void editorOpen(char *filename) {
   E.dirty = 0;
 }
 
-void editorSave() {
+int editorSave(char *filename) {
   int len;
   char *buf;
   int fd;
   int ret;
 
-  if (E.filename == NULL) {
-    E.filename = editorPrompt("Save as: %s (ESC to cancel)");
-    if (E.filename == NULL) {
-      editorSetStatusMessage("Save aborted");
-      return;
-    }
+  if (filename == NULL) {
+    editorSetStatusMessage("No current filename");
+    return 1;
   }
 
-  if (E.filename == NULL) return;
   buf = editorRowsToString(&len);
   fd = open(E.filename, O_RDWR);
   if (fd != -1) {
@@ -694,8 +694,9 @@ void editorSave() {
       close(fd);
       free(buf);
       E.dirty = 0;
-      editorSetStatusMessage("%d bytes written to disk", len);
-      return;
+      editorSetStatusMessage("%d bytes written to disk: '%s'", len, filename);
+      E.filename = filename;
+      return 0;
     }
     close(fd);
   }
@@ -703,6 +704,7 @@ void editorSave() {
   // TODO: Implement error message
   //editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
   editorSetStatusMessage("Can't save! I/O error");
+  return 1;
 }
 
 /*** file io }}} ***/
@@ -793,16 +795,27 @@ void editorDrawRows(struct abuf *ab) {
 void editorDrawStatusBar(struct abuf *ab) {
   char status[80], rstatus[80];
   int len, rlen;
+  char mode;
 
   //abAppend(ab, "\x1b[7m", 4); // MSX doesn't support inverted text
-  
-  len = sprintf(status, "%.20s - %d lines %s",
+
+  switch (E.mode) {
+    case M_COMMAND:
+      mode = '-';
+      break;
+    case M_INSERT:
+      mode = 'I';
+      break;
+  }
+
+  len = sprintf(status, "%c %.20s - %d lines %s",
+    mode,
     E.filename ? E.filename : "[No Name]", E.numrows,
     E.dirty ? "(modified)" : "");
   rlen = sprintf(rstatus, "%d/%d", E.cy + 1, E.numrows);
   if (len > E.screencols) len = E.screencols;
   abAppend(ab, status, len);
- 
+
   while (len < E.screencols) {
     if (E.screencols - len - 1 == rlen) {
       abAppend(ab, rstatus, rlen);
@@ -870,6 +883,38 @@ void editorSetStatusMessage(const char *fmt, ...) {
 
 /*** input {{{ ***/
 
+void runCommand() {
+  char *command;
+  char f[13];
+
+  command = editorPrompt(":%s");
+
+  if (command != NULL && strlen(command) > 0) {
+    if (strcmp(command, "q") == 0) {
+      if (E.dirty) {
+        editorSetStatusMessage("No write since last change (:q! overrides)");
+      } else {
+        quit_program(0);
+      }
+    } else if (strcmp(command, "w") == 0) {
+      editorSave(E.filename);
+    } else if (strncmp(command, "w ", 2) == 0) {
+      strncpy(f, command + 2, 12);
+      editorSave(f);
+    } else if (strcmp(command, "q!") == 0) {
+      quit_program(0);
+    } else if (strcmp(command, "wq") == 0) {
+      if (editorSave(E.filename) == 0) {
+        quit_program(0);
+      }
+    } else {
+      editorSetStatusMessage("Not an editor command: %s", command);
+    }
+  } else {
+    editorSetStatusMessage("");
+  }
+}
+
 char *editorPrompt(char *prompt) {
   size_t bufsize = 128;
   char *buf = malloc(bufsize);
@@ -884,7 +929,6 @@ char *editorPrompt(char *prompt) {
     if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
       if (buflen != 0) buf[--buflen] = '\0';
     } else if (c == ESC) {
-      editorSetStatusMessage("");
       free(buf);
       return NULL;
     } else if (c == '\r') {
@@ -931,7 +975,7 @@ void editorMoveCursor(char key) {
     case ARROW_LEFT:
       if (E.cx != 0) {
         E.cx--;
-      } else if (E.cy > 0) {
+      } else if (E.cy > 0 && E.mode != M_COMMAND) {
         E.cy--;
         E.cx = E.row[E.cy].size;
       }
@@ -939,7 +983,7 @@ void editorMoveCursor(char key) {
     case ARROW_RIGHT:
       if (row && E.cx < row->size) {
         E.cx++;
-      } else if (row && E.cx == row->size) {
+      } else if (row && E.cx == row->size && E.mode != M_COMMAND) {
         E.cy++;
         E.cx = 0;
       }
@@ -961,65 +1005,100 @@ void editorMoveCursor(char key) {
   if (E.cx > rowlen) {
     E.cx = rowlen;
   }
+
+  if (E.cx == rowlen && E.mode == M_COMMAND) {
+    E.cx--;
+  }
 }
 
 void editorProcessKeypress() {
-  static int quit_times = MSXVI_QUIT_TIMES;
   char c = editorReadKey();
   //printf("%d", c); // for getting key code
-  switch (c) {
-    case '\r':
-      editorInsertNewline();
-      break;
-    case CTRL_KEY('q'):
-      if (E.dirty && quit_times > 0) {
-        editorSetStatusMessage("WARNING!!! File has unsaved changes. "
-          "Press Ctrl-Q %d more times to quit.", quit_times);
-        quit_times--;
-        return;
-      }
-      cls();
-      gotoxy(0, 0);
-      quit_program(0);
-      break;
-    case CTRL_KEY('s'):
-      editorSave();
-      break;
-    case HOME_KEY:
-      E.cx = 0;
-      break;
-    case END_KEY:
-      if (E.cy < E.numrows)
-        E.cx = E.row[E.cy].size;
-      break;
-    case BACKSPACE:
-    case DEL_KEY:
-      if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
-      editorDelChar();
-      break;
-    case CTRL_KEY('d'):
-      editorMoveCursor(PAGE_DOWN);
-      break;
-    case CTRL_KEY('u'):
-      editorMoveCursor(PAGE_UP);
-      break;
-    case ARROW_UP:
-    case ARROW_DOWN:
-    case ARROW_LEFT:
-    case ARROW_RIGHT:
-      editorMoveCursor(c);
-      break;
-
-    case CTRL_KEY('l'):
-      break;
-    case ESC:
-      printf("\a"); // BEEP
-      break;
-    default:
-      editorInsertChar(c);
-      break;
+  if (E.mode == M_COMMAND) {
+    switch (c) {
+      /*case CTRL_KEY('s'):*/
+      /*  editorSave();*/
+      /*  break;*/
+      case CTRL_KEY('d'):
+        editorMoveCursor(PAGE_DOWN);
+        break;
+      case CTRL_KEY('u'):
+        editorMoveCursor(PAGE_UP);
+        break;
+      case 'k':
+        editorMoveCursor(ARROW_UP);
+        break;
+      case 'j':
+        editorMoveCursor(ARROW_DOWN);
+        break;
+      case 'l':
+        editorMoveCursor(ARROW_RIGHT);
+        break;
+      case 'h':
+        editorMoveCursor(ARROW_LEFT);
+        break;
+      case ARROW_UP:
+      case ARROW_DOWN:
+      case ARROW_LEFT:
+      case ARROW_RIGHT:
+        editorMoveCursor(c);
+        break;
+      case CTRL_KEY('l'):
+        // TODO redraw screen
+        break;
+      case ESC:
+        printf("\a"); // BEEP
+        break;
+      case '0':
+        E.cx = 0;
+        break;
+      case '$':
+        if (E.cy < E.numrows)
+          E.cx = E.row[E.cy].size;
+        break;
+      case ':':
+        runCommand();
+        break;
+      case 'a':
+        E.mode = M_INSERT;
+        editorMoveCursor(ARROW_RIGHT);
+        break;
+      case 'i':
+        E.mode = M_INSERT;
+        break;
+    }
+  } else if (E.mode == M_INSERT) {
+    switch (c) {
+      case '\r':
+        editorInsertNewline();
+        break;
+      case HOME_KEY:
+        E.cx = 0;
+        break;
+      case END_KEY:
+        if (E.cy < E.numrows)
+          E.cx = E.row[E.cy].size;
+        break;
+      case BACKSPACE:
+      case DEL_KEY:
+        if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
+        editorDelChar();
+        break;
+      case ESC:
+        E.mode = M_COMMAND;
+        editorMoveCursor(ARROW_LEFT);
+        break;
+      case ARROW_UP:
+      case ARROW_DOWN:
+      case ARROW_LEFT:
+      case ARROW_RIGHT:
+        editorMoveCursor(c);
+        break;
+      default:
+        editorInsertChar(c);
+        break;
+    }
   }
-  quit_times = MSXVI_QUIT_TIMES;
 }
 
 /*** input }}} ***/
@@ -1054,11 +1133,13 @@ void init() {
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
+  E.mode = M_COMMAND;
 }
 
 
 void quit_program(int exit_code) {
   initxt(80);
+  cls();
   exit(exit_code);
 }
 
