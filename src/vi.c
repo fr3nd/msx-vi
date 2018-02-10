@@ -754,31 +754,42 @@ void editorScroll() {
 }
 
 void editorDrawRows(struct abuf *ab) {
-  int y;
+  int y, n;
   int len;
   char welcome[80];
   int welcomelen;
   int padding;
   int filerow;
 
+  n = 0;
   for (y = 0; y < E.screenrows; y++) {
     filerow = y + E.rowoff;
     if (filerow >= E.numrows) {
-      if (E.numrows == 0 && y == E.screenrows / 3) {
+      if (E.numrows == 0) {
+        if (y >= E.screenrows / 3 && y <= E.screenrows / 3 + 1) {
+          switch (n) {
+            case 0:
+              sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
+              welcomelen = strlen(welcome);
+              break;
+            case 1:
+              sprintf(welcome, "by Carles Amigo (fr3nd)");
+              welcomelen = strlen(welcome);
+              break;
+          }
 
-        sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
-        welcomelen = strlen(welcome);
+          n++;
+          padding = (E.screencols - welcomelen) / 2;
 
-        padding = (E.screencols - welcomelen) / 2;
-
-        if (padding) {
+          if (padding) {
+            abAppend(ab, "~", 1);
+            padding--;
+          }
+          while (padding--) abAppend(ab, " ", 1);
+          abAppend(ab, welcome, welcomelen);
+        } else {
           abAppend(ab, "~", 1);
-          padding--;
         }
-        while (padding--) abAppend(ab, " ", 1);
-        abAppend(ab, welcome, welcomelen);
-      } else {
-        abAppend(ab, "~", 1);
       }
     } else {
       len = E.row[filerow].rsize - E.coloff;
