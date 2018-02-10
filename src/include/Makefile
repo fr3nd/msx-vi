@@ -15,7 +15,8 @@ all: $(REL_FILES) $(REL2_FILES)
 	$(CC) -mz80 -c -o $@ $^
 
 clean:
-	rm -f *.rel *.asm *.lst *.sym
+	find *.rel -type f -not -name 'VDP*' -delete || true
+	rm -f *.asm *.lst *.sym
 
 # vim:ft=make
 #

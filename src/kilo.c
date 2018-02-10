@@ -1,3 +1,4 @@
+// vim:foldmethod=marker:foldlevel=0
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -5,9 +6,9 @@
 #include <time.h>
 #include <stdarg.h>
 
-#define KILO_VERSION "0.0.1a"
-#define KILO_TAB_STOP 8
-#define KILO_QUIT_TIMES 3
+#define MSXVI_VERSION "0.0.1a"
+#define MSXVI_TAB_STOP 8
+#define MSXVI_QUIT_TIMES 3
 #define FILE_BUFFER_LENGTH 512
 
 #define BACKSPACE   8
@@ -68,7 +69,7 @@
 #define BIOSCALL ld iy,(EXPTBL-1)\
 call CALSLT
 
-/*** data ***/
+/*** data {{{ ***/
 
 typedef struct erow {
   int size;
@@ -105,15 +106,23 @@ typedef struct {
   char dow; /* On getdate() gets Day of week 0=Sun...6=Sat */
 } DATE;
 
+/*** end data }}} ***/
+
+/*** global variables {{{ ***/
+
 struct editorConfig E;
 
-/*** prototypes ***/
+
+/*** end global variables }}} ***/
+
+/*** prototypes {{{ ***/
 
 void editorSetStatusMessage(const char *fmt, ...);
+void quit_program(int exit_code);
 
-/*** functions ***/
+/*** end prototypes }}} ***/
 
-// https://stackoverflow.com/questions/252782/strdup-what-does-it-do-in-c
+/*** functions {{{ ***/
 
 char dosver(void) __naked {
   __asm
@@ -178,6 +187,7 @@ void initxt(char columns) __naked {
   __endasm;
 }
 
+// https://stackoverflow.com/questions/252782/strdup-what-does-it-do-in-c
 char *strdup (const char *s) {
   char *d = malloc (strlen (s) + 1);   // Space for length plus nul
   if (d == NULL) return NULL;          // No memory
@@ -205,9 +215,15 @@ void gotoxy(char x, char y) __naked {
   __endasm;
 }
 
-void cls(void) {
-  putchar(0x1b);
-  putchar(0x45);
+void cls(void) __naked {
+  __asm
+    push ix
+    cp a
+    ld ix,CLS
+    BIOSCALL
+    pop ix
+    ret
+  __endasm;
 }
 
 int open(char *fn, int mode) __naked {
@@ -340,7 +356,7 @@ void die(const char *s) {
   cls();
   gotoxy(0, 0);
   perror(s);
-  exit(1);
+  quit_program(1);
 }
 
 int getCursorPosition(int *rows, int *cols) {
@@ -358,14 +374,44 @@ int getWindowSize(int *rows, int *cols) {
   return getCursorPosition(rows, cols);
 }
 
-/*** row operations ***/
+/*** end functions }}} ***/
+
+/*** graphic functions {{{ ***/
+
+void color(char fg, char bg, char bd) __naked {
+  fg;
+  bg;
+  bd;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld a,0(ix)
+    ld(#FORCLR),a
+    ld a,1(ix)
+    ld(#BAKCLR),a
+    ld a,2(ix)
+    ld(#BDRCLR),a
+
+    ld ix,CHGCLR
+    BIOSCALL
+
+    pop ix
+    ret
+  __endasm;
+}
+
+/*** end graphic functions }}} ***/
+
+/*** row operations {{{ ***/
 
 int editorRowCxToRx(erow *row, int cx) {
   int rx = 0;
   int j;
   for (j = 0; j < cx; j++) {
     if (row->chars[j] == '\t')
-      rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+      rx += (MSXVI_TAB_STOP - 1) - (rx % MSXVI_TAB_STOP);
     rx++;
   }
   return rx;
@@ -380,12 +426,12 @@ void editorUpdateRow(erow *row) {
     if (row->chars[j] == '\t') tabs++;
 
   free(row->render);
-  row->render = malloc(row->size + tabs*(KILO_TAB_STOP - 1) + 1);
+  row->render = malloc(row->size + tabs*(MSXVI_TAB_STOP - 1) + 1);
 
   for (j = 0; j < row->size; j++) {
     if (row->chars[j] == '\t') {
       row->render[idx++] = ' ';
-      while (idx % KILO_TAB_STOP != 0) row->render[idx++] = ' ';
+      while (idx % MSXVI_TAB_STOP != 0) row->render[idx++] = ' ';
     } else {
       row->render[idx++] = row->chars[j];
     }
@@ -450,7 +496,9 @@ void editorRowDelChar(erow *row, int at) {
   E.dirty++;
 }
 
-/*** editor operations ***/
+/*** end row operations }}} ***/
+
+/*** editor operations {{{ ***/
 
 void editorInsertChar(int c) {
   if (E.cy == E.numrows) {
@@ -492,7 +540,9 @@ void editorDelChar() {
   }
 }
 
-/*** file io ***/
+/*** editor operations }}} ***/
+
+/*** file io {{{ ***/
 
 int read(char* buf, unsigned int size, char fp) __naked {
   buf;
@@ -645,39 +695,9 @@ void editorSave() {
   editorSetStatusMessage("Can't save! I/O error");
 }
 
-void init() {
-  // Check MSX-DOS version >= 2
-  if(dosver() < 2) {
-    die("This program requires MSX-DOS 2 to run.");
-  }
+/*** file io }}} ***/
 
-  // Set 80 column mode
-  initxt(80);
-
-  // Get window size
-  if (getWindowSize(&E.screenrows, &E.screencols) == -1)
-    die("ERROR: Could not get screen size");
-  E.screenrows -= 2;
-  gotoxy(0, 0);
-
-  E.cx = 0;
-  E.cy = 0;
-  E.rx = 0;
-  E.rowoff = 0;
-  E.coloff = 0;
-  E.numrows = 0;
-  E.row = NULL;
-  E.dirty = 0;
-  E.filename = NULL;
-  E.statusmsg[0] = '\0';
-  E.statusmsg_time = 0;
-}
-
-
-void quit_program() {
-}
-
-/*** append buffer ***/
+/*** append buffer {{{ ***/
 
 struct abuf {
   char *b;
@@ -696,7 +716,10 @@ void abFree(struct abuf *ab) {
   free(ab->b);
 }
 
-/*** output ***/
+
+/*** append buffer }}} ***/
+
+/*** output {{{ ***/
 
 void editorScroll() {
   E.rx = 0;
@@ -731,7 +754,7 @@ void editorDrawRows(struct abuf *ab) {
     if (filerow >= E.numrows) {
       if (E.numrows == 0 && y == E.screenrows / 3) {
 
-        sprintf(welcome, "Kilo editor -- version %s", KILO_VERSION);
+        sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
         welcomelen = strlen(welcome);
 
         padding = (E.screencols - welcomelen) / 2;
@@ -833,8 +856,9 @@ void editorSetStatusMessage(const char *fmt, ...) {
   va_end(ap);
   E.statusmsg_time = _time();
 }
+/*** output }}} ***/
 
-/*** input ***/
+/*** input {{{ ***/
 
 char editorReadKey() {
   return getchar();
@@ -897,7 +921,7 @@ void editorMoveCursor(char key) {
 }
 
 void editorProcessKeypress() {
-  static int quit_times = KILO_QUIT_TIMES;
+  static int quit_times = MSXVI_QUIT_TIMES;
   char c = editorReadKey();
   //printf("%d", c); // for getting key code
   switch (c) {
@@ -913,7 +937,7 @@ void editorProcessKeypress() {
       }
       cls();
       gotoxy(0, 0);
-      exit(0);
+      quit_program(0);
       break;
     case CTRL_KEY('s'):
       editorSave();
@@ -952,10 +976,48 @@ void editorProcessKeypress() {
       editorInsertChar(c);
       break;
   }
-  quit_times = KILO_QUIT_TIMES;
+  quit_times = MSXVI_QUIT_TIMES;
 }
 
-/*** main ***/
+/*** input }}} ***/
+
+/*** main {{{ ***/
+
+void init() {
+  // Check MSX-DOS version >= 2
+  if(dosver() < 2) {
+    die("This program requires MSX-DOS 2 to run.");
+  }
+
+  // Set 80 column mode
+  initxt(80);
+
+  // Get window size
+  if (getWindowSize(&E.screenrows, &E.screencols) == -1)
+    die("ERROR: Could not get screen size");
+  E.screenrows -= 2;
+
+  // Set coords to 0,0
+  gotoxy(0, 0);
+
+  E.cx = 0;
+  E.cy = 0;
+  E.rx = 0;
+  E.rowoff = 0;
+  E.coloff = 0;
+  E.numrows = 0;
+  E.row = NULL;
+  E.dirty = 0;
+  E.filename = NULL;
+  E.statusmsg[0] = '\0';
+  E.statusmsg_time = 0;
+}
+
+
+void quit_program(int exit_code) {
+  initxt(80);
+  exit(exit_code);
+}
 
 void debug_keys(void) {
   char c;
@@ -998,6 +1060,8 @@ int main(char **argv, int argc) {
     editorProcessKeypress();
   }
 
-  quit_program();
+  quit_program(0);
   return 0;
 }
+
+/*** main }}} ***/
