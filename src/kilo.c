@@ -4,12 +4,8 @@
 #include <string.h>
 #include <time.h>
 #include <stdarg.h>
-#include "asm.h"
-#include "heap.h"
 
-Z80_registers regs;
-
-#define KILO_VERSION "0.0.1"
+#define KILO_VERSION "0.0.1a"
 #define KILO_TAB_STOP 8
 #define KILO_QUIT_TIMES 3
 #define FILE_BUFFER_LENGTH 512
@@ -33,24 +29,44 @@ Z80_registers regs;
 #define  O_INHERIT  0x04
 
 /* DOS calls */
-#define _TERM0  0x00
-#define _TERM   0x62
-#define _DOSVER 0x6F
-#define _INITXT 0x006C
-#define _POSIT  0xC6
-#define _OPEN   0x43
-#define _CLOSE  0x45
-#define _READ   0x48
-#define _WRITE  0x49
+#define TERM    #0x62
+#define DOSVER  #0x6F
+#define OPEN    #0x43
+#define CLOSE   #0x45
+#define READ    #0x48
+#define WRITE   #0x49
 #define _EOF    0xC7
-#define _GTIME  0x2C
-#define _GDATE  0x2A
+#define GTIME   #0x2C
+#define GDATE   #0x2A
 
 /* BIOS calls */
-#define _CHGET  0x9F
+#define CHGET  #0x009F
+#define CHPUT  #0x00A2
+#define CALSLT #0x001C
+#define EXPTBL #0xFCC1
+#define POSIT  #0x00C6
+#define INITXT #0x006C
+#define CLS    #0x00C3
+#define CHGCLR #0x0062
+#define CHGMOD #0x005F
+#define WRTVRM #0x004D
+#define NRDVRM #0x0174
+#define NWRVRM #0x0177
+#define FILVRM #0x0056
+#define DISSCR #0x0041
+#define ENASCR #0x0044
+
+/* Memory variables */
+#define LINL40 0xF3AE
+#define FORCLR 0xF3E9
+#define BAKCLR 0xF3EA
+#define BDRCLR 0xF3EB
 
 #define perror(x) {printf("*** ");printf(x);printf("\r\n");}
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define DOSCALL  call 5
+#define BIOSCALL ld iy,(EXPTBL-1)\
+call CALSLT
 
 /*** data ***/
 
@@ -76,6 +92,19 @@ struct editorConfig {
   time_t statusmsg_time;
 };
 
+typedef struct {
+  char hour;  /* Hours 0..23 */
+  char min; /* Minutes 0..59 */
+  char sec; /* Seconds 0..59 */
+} TIME;
+
+typedef struct {
+  int year; /* Year 1980...2079 */
+  char month; /* Month 1=Jan..12=Dec */
+  char day; /* Day of the month 1...31 */
+  char dow; /* On getdate() gets Day of week 0=Sun...6=Sat */
+} DATE;
+
 struct editorConfig E;
 
 /*** prototypes ***/
@@ -86,9 +115,67 @@ void editorSetStatusMessage(const char *fmt, ...);
 
 // https://stackoverflow.com/questions/252782/strdup-what-does-it-do-in-c
 
-char _getchar(void) {
-  BiosCall(_CHGET, &regs, REGS_AF);
-  return regs.Bytes.A;
+char dosver(void) __naked {
+  __asm
+    push ix
+
+    ld c, DOSVER
+    DOSCALL
+
+    ld h, #0x00
+    ld l, b
+
+    pop ix
+    ret
+  __endasm;
+}
+
+char getchar(void) __naked {
+  __asm
+    push ix
+
+    ld ix,CHGET
+    BIOSCALL
+    ld h, #0x00
+    ld l,a ;reg to put a read character
+
+    pop ix
+    ret
+  __endasm;
+}
+
+void putchar(char c) __naked {
+  c;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld a,(ix)
+    ld ix,CHPUT
+    BIOSCALL
+
+    pop ix
+    ret
+  __endasm;
+}
+
+void initxt(char columns) __naked {
+  columns;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld a,(ix)
+    ld (LINL40),a
+
+    ld ix,INITXT
+    BIOSCALL
+
+    pop ix
+    ret
+  __endasm;
 }
 
 char *strdup (const char *s) {
@@ -98,10 +185,24 @@ char *strdup (const char *s) {
   return d;                            // Return the new string
 }
 
-void gotoxy(int x, int y) {
-  regs.Bytes.H = x+1;
-  regs.Bytes.L = y+1;
-  BiosCall(_POSIT, &regs, REGS_AF);
+void gotoxy(char x, char y) __naked {
+  x;
+  y;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld l,(ix)
+    inc l
+    ld h,1(ix)
+    inc h
+    ld ix,POSIT
+    BIOSCALL
+
+    pop ix
+    ret
+  __endasm;
 }
 
 void cls(void) {
@@ -109,45 +210,130 @@ void cls(void) {
   putchar(0x45);
 }
 
-int open(char *fn, int mode) {
-  regs.Words.DE = (int)fn;
-  regs.Bytes.A = mode;
-  regs.Bytes.B = 0;
-  DosCall(_OPEN, &regs, REGS_MAIN, REGS_MAIN);
-  if (regs.Bytes.A == 0) {
-    return regs.Bytes.B;
-  } else {
-    return -1;
-  }
+int open(char *fn, int mode) __naked {
+  fn;
+  mode;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld e,0(ix)
+    ld d,1(ix)
+    ld a,2(ix)
+    ld c, OPEN
+    DOSCALL
+
+    cp #0
+    jr z, open_noerror$
+    ld h, #0xFF
+    ld l, #0xFF
+    jp open_error$
+  open_noerror$:
+    ld h, #0x00
+    ld l, b
+  open_error$:
+    pop ix
+    ret
+  __endasm;
 }
 
-int close(int fp) {
-  regs.UWords.DE = fp;
-  DosCall(_CLOSE, &regs, REGS_MAIN, REGS_NONE);
-  return regs.Bytes.B;
+int close(int fp) __naked {
+  fp;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld b,(ix)
+    ld c, CLOSE
+    DOSCALL
+
+    ld h, #0x00
+    ld l,a
+
+    pop ix
+    ret
+  __endasm;
 }
 
-void exit(int code) {
-  regs.Bytes.B = code;
-  DosCall(_TERM, &regs, REGS_MAIN, REGS_NONE);
+void exit(int code) __naked {
+  code;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld b,(ix)
+    ld c, TERM
+    DOSCALL
+
+    pop ix
+    ret
+  __endasm;
+}
+
+void gtime(TIME* t) __naked {
+  t;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld l,0(ix)
+    ld h,1(ix)
+    ld d,2(ix)
+    push hl
+
+    ld c, GTIME
+    DOSCALL
+
+    pop ix
+
+    ld 0(ix),h
+    ld 1(ix),l
+    ld 2(ix),d
+
+    pop ix
+    ret
+  __endasm;
+}
+
+void gdate(DATE* d) __naked {
+  d;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld l,0(ix)
+    ld h,1(ix)
+    push hl
+
+    ld c, GDATE
+    DOSCALL
+
+    pop ix
+
+    ld 0(ix),l
+    ld 1(ix),h
+    ld 2(ix),d
+    ld 3(ix),e
+    ld 4(ix),a
+
+    pop ix
+    ret
+  __endasm;
 }
 
 time_t _time() {
-  char h, m, s, mo, d;
-  int y;
+  TIME time;
+  DATE date;
 
-  DosCall(_GTIME, &regs, REGS_MAIN, REGS_MAIN);
-  h = regs.Bytes.H;
-  m = regs.Bytes.L;
-  s = regs.Bytes.D;
-
-  DosCall(_GDATE, &regs, REGS_MAIN, REGS_MAIN);
-  y = regs.Words.HL;
-  mo = regs.Bytes.D;
-  d = regs.Bytes.E;
-
+  gtime(&time);
+  gdate(&date);
   /* XXX Calculating basic not acurate timestamp. */
-  return (((( ((y-1970)*365) + (mo * 30) + d ) * 24 + h) * 60 + m) * 60 + s);
+  return (((( ((date.year-1970)*365) + (date.month * 30) + date.day ) * 24 + time.hour) * 60 + time.min) * 60 + time.sec);
 }
 
 void die(const char *s) {
@@ -308,30 +494,58 @@ void editorDelChar() {
 
 /*** file io ***/
 
-int read(char* buf, uint size, byte fp) {
-  regs.Bytes.B = fp;
-  regs.UWords.DE = (uint)buf;
-  regs.UWords.HL = size;
-  DosCall(_READ, &regs, REGS_MAIN, REGS_MAIN);
+int read(char* buf, unsigned int size, char fp) __naked {
+  buf;
+  size;
+  fp;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
 
-  if (regs.Bytes.A == 0) {
-    return regs.UWords.HL;
-  } else {
-    return -1;
-  }
+    ld e,0(ix)
+    ld d,1(ix)
+    ld l,2(ix)
+    ld h,3(ix)
+    ld b,4(ix)
+    ld c, READ
+    DOSCALL
+
+    cp #0
+    jr z, read_noerror$
+    ld h, #0xFF
+    ld l, #0xFF
+  read_noerror$:
+    pop ix
+    ret
+  __endasm;
 }
 
-int write(char* buf, uint size, byte fp) {
-  regs.Bytes.B = fp;
-  regs.UWords.DE = (int)buf;
-  regs.UWords.HL = size;
-  DosCall(_WRITE, &regs, REGS_MAIN, REGS_MAIN);
+int write(char* buf, unsigned int size, char fp) __naked {
+  buf;
+  size;
+  fp;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
 
-  if (regs.Bytes.A == 0) {
-    return regs.UWords.HL;
-  } else {
-    return -1;
-  }
+    ld e,0(ix)
+    ld d,1(ix)
+    ld l,2(ix)
+    ld h,3(ix)
+    ld b,4(ix)
+    ld c, WRITE
+    DOSCALL
+
+    cp #0
+    jr z, write_noerror$
+    ld h, #0xFF
+    ld l, #0xFF
+  write_noerror$:
+    pop ix
+    ret
+  __endasm;
 }
 
 //* Read one char from file
@@ -432,17 +646,13 @@ void editorSave() {
 }
 
 void init() {
-  static char __at(0xF3AE) _LINL40;
-
   // Check MSX-DOS version >= 2
-  DosCall(_DOSVER, &regs, REGS_NONE, REGS_MAIN);
-  if(regs.Bytes.B < 2) {
+  if(dosver() < 2) {
     die("This program requires MSX-DOS 2 to run.");
   }
 
   // Set 80 column mode
-  _LINL40 = 80;
-  BiosCall(_INITXT, &regs, REGS_NONE);
+  initxt(80);
 
   // Get window size
   if (getWindowSize(&E.screenrows, &E.screencols) == -1)
@@ -627,7 +837,7 @@ void editorSetStatusMessage(const char *fmt, ...) {
 /*** input ***/
 
 char editorReadKey() {
-  return _getchar();
+  return getchar();
 }
 
 void editorMoveCursor(char key) {
@@ -749,7 +959,7 @@ void editorProcessKeypress() {
 
 void debug_keys(void) {
   char c;
-  c = _getchar();
+  c = getchar();
   printf("%d\n\r", c);
 }
 
