@@ -11,5 +11,8 @@ hex2bin:
 test:
 	$(MAKE) -C src test
 
+release:
+	$(MAKE) -C src release
+
 # vim:ft=make
 #
