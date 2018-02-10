@@ -957,6 +957,13 @@ void editorMoveCursor(char key) {
   erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
 
   switch (key) {
+    case HOME_KEY:
+      E.cx = 0;
+      break;
+    case END_KEY:
+      if (E.cy < E.numrows)
+        E.cx = E.row[E.cy].size;
+      break;
     case PAGE_UP:
     case PAGE_DOWN:
       {
@@ -1050,11 +1057,10 @@ void editorProcessKeypress() {
         printf("\a"); // BEEP
         break;
       case '0':
-        E.cx = 0;
+        editorMoveCursor(HOME_KEY);
         break;
       case '$':
-        if (E.cy < E.numrows)
-          E.cx = E.row[E.cy].size;
+        editorMoveCursor(END_KEY);
         break;
       case ':':
         runCommand();
@@ -1066,18 +1072,24 @@ void editorProcessKeypress() {
       case 'i':
         E.mode = M_INSERT;
         break;
+      case 'o':
+        E.mode = M_INSERT;
+        editorMoveCursor(HOME_KEY);
+        editorMoveCursor(ARROW_DOWN);
+        editorInsertNewline();
+        editorMoveCursor(ARROW_UP);
+        break;
+      case 'O':
+        E.mode = M_INSERT;
+        editorMoveCursor(HOME_KEY);
+        editorInsertNewline();
+        editorMoveCursor(ARROW_UP);
+        break;
     }
   } else if (E.mode == M_INSERT) {
     switch (c) {
       case '\r':
         editorInsertNewline();
-        break;
-      case HOME_KEY:
-        E.cx = 0;
-        break;
-      case END_KEY:
-        if (E.cy < E.numrows)
-          E.cx = E.row[E.cy].size;
         break;
       case BACKSPACE:
       case DEL_KEY:
@@ -1088,6 +1100,8 @@ void editorProcessKeypress() {
         E.mode = M_COMMAND;
         editorMoveCursor(ARROW_LEFT);
         break;
+      case HOME_KEY:
+      case END_KEY:
       case ARROW_UP:
       case ARROW_DOWN:
       case ARROW_LEFT:
