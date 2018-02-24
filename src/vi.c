@@ -724,6 +724,18 @@ void abAppend(struct abuf *ab, const char *s, int len) {
   ab->b = new;
   ab->len += len;
 }
+
+void abAppendGotoxy(struct abuf *ab, char x, char y) {
+  char buf[3];
+
+  abAppend(ab,"\33Y", 2);
+  sprintf(buf, "%c", y + 32);
+  abAppend(ab, buf, 1);
+  sprintf(buf, "%c", x + 32);
+  abAppend(ab, buf, 1);
+}
+
+
 void abFree(struct abuf *ab) {
   free(ab->b);
 }
@@ -857,7 +869,6 @@ void printBuff(struct abuf *ab) {
 
 void editorRefreshScreen() {
   struct abuf ab = ABUF_INIT;
-  char buf[3];
 
   editorScroll();
 
@@ -868,11 +879,7 @@ void editorRefreshScreen() {
   editorDrawStatusBar(&ab);
   editorDrawMessageBar(&ab);
 
-  abAppend(&ab,"\33Y", 2);
-  sprintf(buf, "%c", (E.cy - E.rowoff) + 32);
-  abAppend(&ab, buf, 1);
-  sprintf(buf, "%c", (E.rx - E.coloff) + 32);
-  abAppend(&ab, buf, 1);
+  abAppendGotoxy(&ab, E.rx - E.coloff, E.cy - E.rowoff);
 
   abAppend(&ab, "\33y5", 3); // Enable cursor
 
