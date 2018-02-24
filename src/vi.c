@@ -10,6 +10,8 @@
 #define MSXVI_TAB_STOP 8
 #define FILE_BUFFER_LENGTH 512
 
+#define TEXT2_COLOR_TABLE 0x00800
+
 #define BACKSPACE   8
 #define ESC         27
 #define ARROW_RIGHT 28
@@ -59,6 +61,7 @@
 #define FILVRM #0x0056
 #define DISSCR #0x0041
 #define ENASCR #0x0044
+#define WRTVDP #0x0047
 
 /* Memory variables */
 #define LINL40 0xF3AE
@@ -402,6 +405,63 @@ void color(char fg, char bg, char bd) __naked {
 
     ld ix,CHGCLR
     BIOSCALL
+
+    pop ix
+    ret
+  __endasm;
+}
+
+void vdp_w(char data, char reg) __naked {
+  reg;
+  data;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld b,0(ix)
+    ld c,1(ix)
+    ld ix,WRTVDP
+    BIOSCALL
+
+    pop ix
+    ret
+  __endasm;
+}
+
+void vpoke(unsigned int address, unsigned char value) __naked {
+  address;
+  value;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld l,0(ix)
+    ld h,1(ix)
+    ld a,2(ix)
+    ld ix,NWRVRM
+    BIOSCALL
+
+    pop ix
+    ret
+  __endasm;
+}
+
+unsigned char vpeek(unsigned int address) __naked {
+  address;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld l,0(ix)
+    ld h,1(ix)
+    ld ix,NRDVRM
+    BIOSCALL
+
+    ld h, #0x00
+    ld l,a
 
     pop ix
     ret
@@ -818,8 +878,6 @@ void editorDrawStatusBar(struct abuf *ab) {
   int len, rlen;
   char mode;
 
-  //abAppend(ab, "\x1b[7m", 4); // MSX doesn't support inverted text
-
   switch (E.mode) {
     case M_COMMAND:
       mode = '-';
@@ -846,7 +904,6 @@ void editorDrawStatusBar(struct abuf *ab) {
       len++;
     }
   }
-  //abAppend(ab, "\x1b[m", 3); // MSX doesn't support inverted text
   abAppend(ab, "\r\n", 2);
 }
 
@@ -1139,6 +1196,8 @@ void editorProcessKeypress() {
 /*** main {{{ ***/
 
 void init() {
+  int n;
+
   // Check MSX-DOS version >= 2
   if(dosver() < 2) {
     die("This program requires MSX-DOS 2 to run.");
@@ -1167,10 +1226,20 @@ void init() {
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
   E.mode = M_COMMAND;
+
+  // Set inverted text area
+  for (n=0; n < (E.screenrows+2) * E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n, 0x00);
+  for (n=0; n < E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n + (E.screencols/8*22), 0xff);
+  vdp_w(0x4f, 12); // blink colors
+  vdp_w(0xf0, 13); // blink speed: stopped
 }
 
 
 void quit_program(int exit_code) {
+  int n;
+
+  // Set back blink table to blank
+  for (n=0; n < (E.screenrows+2) * E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n, 0x00);
   initxt(80);
   cls();
   exit(exit_code);
