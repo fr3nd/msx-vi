@@ -96,10 +96,10 @@ struct editorConfig {
   int dirty;
   char *filename;
   char statusmsg[80];
-  time_t statusmsg_time;
   char mode;
   char full_refresh;
   char welcome_msg;
+  char msgbar_updated;
 };
 
 typedef struct {
@@ -928,12 +928,18 @@ void editorDrawStatusBar(struct abuf *ab) {
 void editorDrawMessageBar(struct abuf *ab) {
   int msglen;
 
-  abAppendGotoxy(ab, 0, 23);
-  abAppend(ab, "\33K", 2);
-  msglen = strlen(E.statusmsg);
-  if (msglen > E.screencols) msglen = E.screencols;
-  if (msglen && _time() - E.statusmsg_time < 5)
-    abAppend(ab, E.statusmsg, msglen);
+  if (E.msgbar_updated) {
+    E.msgbar_updated = 0;
+    abAppendGotoxy(ab, 0, 23);
+    abAppend(ab, "\33K", 2);
+    msglen = strlen(E.statusmsg);
+    if (msglen > E.screencols) msglen = E.screencols;
+    if (msglen) {
+      abAppend(ab, E.statusmsg, msglen);
+      E.statusmsg[0] = '\0';
+      E.msgbar_updated = 1;
+    }
+  }
 }
 
 void printBuff(struct abuf *ab) {
@@ -972,7 +978,7 @@ void editorSetStatusMessage(const char *fmt, ...) {
   va_start(ap, fmt);
   vsprintf(E.statusmsg, fmt, ap);
   va_end(ap);
-  E.statusmsg_time = _time();
+  E.msgbar_updated = 1;
 }
 /*** output }}} ***/
 
@@ -1247,10 +1253,10 @@ void init() {
   E.dirty = 0;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
-  E.statusmsg_time = 0;
   E.mode = M_COMMAND;
   E.full_refresh = 1;
   E.welcome_msg = 1;
+  E.msgbar_updated = 1;
 
   // Set inverted text area
   for (n=0; n < (E.screenrows+2) * E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n, 0x00);
