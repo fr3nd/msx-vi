@@ -98,6 +98,8 @@ struct editorConfig {
   char statusmsg[80];
   time_t statusmsg_time;
   char mode;
+  char full_refresh;
+  char welcome_msg;
 };
 
 typedef struct {
@@ -536,6 +538,8 @@ void editorDelRow(int at) {
 }
 
 void editorRowInsertChar(erow *row, int at, int c) {
+  int n;
+
   if (at < 0 || at > row->size) at = row->size;
   row->chars = realloc(row->chars, row->size + 2);
   memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
@@ -543,6 +547,15 @@ void editorRowInsertChar(erow *row, int at, int c) {
   row->chars[at] = c;
   editorUpdateRow(row);
   E.dirty++;
+
+  // Update screen
+  printf("\33x5");
+  putchar(c);
+  if (at != row->size) {
+    for (n=at+1; n < row->size; n++) {
+      putchar(row->chars[n]);
+    }
+  }
 }
 
 void editorRowAppendString(erow *row, char *s, size_t len) {
@@ -837,7 +850,7 @@ void editorDrawRows(struct abuf *ab) {
   for (y = 0; y < E.screenrows; y++) {
     filerow = y + E.rowoff;
     if (filerow >= E.numrows) {
-      if (E.numrows == 0 && (y >= E.screenrows / 3 && y <= E.screenrows / 3 + 1)) {
+      if (E.welcome_msg && E.numrows == 0 && (y >= E.screenrows / 3 && y <= E.screenrows / 3 + 1)) {
         switch (n) {
           case 0:
             sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
@@ -871,6 +884,11 @@ void editorDrawRows(struct abuf *ab) {
     abAppend(ab, "\33K", 2);
     abAppend(ab, "\n\r", 2);
   }
+
+  if (E.welcome_msg) {
+    E.welcome_msg = 0;
+    E.full_refresh = 1;
+  }
 }
 
 void editorDrawStatusBar(struct abuf *ab) {
@@ -893,6 +911,7 @@ void editorDrawStatusBar(struct abuf *ab) {
     E.dirty ? "(modified)" : "");
   rlen = sprintf(rstatus, "%d/%d", E.cy + 1, E.numrows);
   if (len > E.screencols) len = E.screencols;
+  abAppendGotoxy(ab, 0, 22);
   abAppend(ab, status, len);
 
   while (len < E.screencols) {
@@ -904,12 +923,12 @@ void editorDrawStatusBar(struct abuf *ab) {
       len++;
     }
   }
-  abAppend(ab, "\r\n", 2);
 }
 
 void editorDrawMessageBar(struct abuf *ab) {
   int msglen;
 
+  abAppendGotoxy(ab, 0, 23);
   abAppend(ab, "\33K", 2);
   msglen = strlen(E.statusmsg);
   if (msglen > E.screencols) msglen = E.screencols;
@@ -932,7 +951,10 @@ void editorRefreshScreen() {
   abAppend(&ab, "\33x5", 3); // Hide cursor
   abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
 
-  editorDrawRows(&ab);
+  if (E.full_refresh) {
+    E.full_refresh = 0;
+    editorDrawRows(&ab);
+  }
   editorDrawStatusBar(&ab);
   editorDrawMessageBar(&ab);
 
@@ -1127,7 +1149,8 @@ void editorProcessKeypress() {
         editorMoveCursor(c);
         break;
       case CTRL_KEY('l'):
-        // TODO redraw screen
+        E.full_refresh = 1;
+        editorRefreshScreen();
         break;
       case ESC:
         printf("\a"); // BEEP
@@ -1226,6 +1249,8 @@ void init() {
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
   E.mode = M_COMMAND;
+  E.full_refresh = 1;
+  E.welcome_msg = 1;
 
   // Set inverted text area
   for (n=0; n < (E.screenrows+2) * E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n, 0x00);
