@@ -1032,6 +1032,12 @@ void editorMoveCursor(char key) {
   if (E.cx == rowlen && E.mode == M_COMMAND) {
     E.cx--;
   }
+
+  if (E.cx < 0)
+    E.cx = 0;
+  if (E.cy < 0)
+    E.cy = 0;
+
 }
 
 void editorProcessKeypress() {
