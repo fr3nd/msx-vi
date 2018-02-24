@@ -34,16 +34,21 @@ libsclean:
 
 clean: libsclean
 	find *.rel -type f -not -name 'VDP*' -delete || true
-	find dsk -type f -not -name 'COMMAND2.COM' -not -name 'MSXDOS2.SYS' -delete || true
+	find dsk \
+		-not -name 'COMMAND2.COM' \
+		-not -name 'MSXDOS2.SYS' \
+		-not -name 'AUTOEXEC.BAT' \
+		-delete || true
 	rm -f *.com *.asm *.lst *.sym *.bin *.ihx *.lk *.map *.noi
 	rm -rf bin/
 	rm -f vi.zip
 
-test:
-	openmsx -machine Boosted_MSXturboR_with_IDE -ext msxdos2 -diska ../emulation/msx-dos/ -script ../emulation/boot.tcl -diskb bin/
+test: release
+	openmsx -machine msx2 -ext msxdos2 -diska dsk/ -script ../emulation/boot.tcl
 
 release: all
 	cp bin/vi.com dsk/
+	cp -r ../tests/*.txt dsk/
 	7z a vi.zip ./dsk/*
 
 # vim:ft=make

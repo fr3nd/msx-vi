@@ -1,0 +1,20 @@
+test.txt
+
+# 80 chars line
+
+0123456789012345678901234567890123456789012345678901234567890123456789012345678
+
+# Random text
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla sit amet rhoncus
+orci, ac porttitor eros. Pellentesque placerat sodales turpis sed ultrices.
+Aenean porttitor, arcu at tempus faucibus, odio risus euismod eros, id lacinia
+urna lectus sit amet ex. In at neque sapien. Proin ac condimentum ex, vitae
+lobortis dolor. Phasellus sollicitudin purus dui, in tempus magna scelerisque
+a. In scelerisque, erat quis laoreet malesuada, est sem lacinia lacus, a
+pellentesque quam sem id lacus. Ut sodales libero at lacus tempor pretium.
+Phasellus at nulla metus. Aenean luctus varius mauris at lobortis. Cras
+condimentum auctor libero eget tincidunt. Morbi dolor orci, accumsan vitae
+dolor quis, posuere blandit dolor. Suspendisse egestas sagittis molestie. Sed
+malesuada ex a ex egestas rhoncus. Vivamus faucibus non mi auctor gravida.
+Nullam in laoreet felis.
