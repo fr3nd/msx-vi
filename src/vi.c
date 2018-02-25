@@ -1241,8 +1241,6 @@ void editorProcessKeypress() {
 /*** main {{{ ***/
 
 void init() {
-  int n;
-
   // Check MSX-DOS version >= 2
   if(dosver() < 2) {
     die("This program requires MSX-DOS 2 to run.");
@@ -1273,12 +1271,6 @@ void init() {
   E.full_refresh = 1;
   E.welcome_msg = 1;
   E.msgbar_updated = 1;
-
-  // Set inverted text area
-  for (n=0; n < (E.screenrows+2) * E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n, 0x00);
-  for (n=0; n < E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n + (E.screencols/8*22), 0xff);
-  vdp_w(0x4f, 12); // blink colors
-  vdp_w(0xf0, 13); // blink speed: stopped
 }
 
 
@@ -1325,6 +1317,12 @@ int main(char **argv, int argc) {
   if (filename[0] != '\0') {
     editorOpen(filename);
   }
+
+  // Set inverted text area
+  for (i=0; i < (E.screenrows+2) * E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i, 0x00);
+  for (i=0; i < E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i + (E.screencols/8*22), 0xff);
+  vdp_w(0x4f, 12); // blink colors
+  vdp_w(0xf0, 13); // blink speed: stopped
 
   while (1) {
     editorRefreshScreen();
