@@ -544,7 +544,7 @@ void editorRowInsertChar(erow *row, int at, int c) {
   printf("\33x5");
   putchar(c);
   if (at != row->size) {
-    for (n=at+1; n < row->size; n++) {
+    for (n=at; n < row->size; n++) {
       putchar(row->chars[n]);
     }
   }
