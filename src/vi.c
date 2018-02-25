@@ -96,8 +96,10 @@ struct editorConfig {
   int dirty;
   char *filename;
   char statusmsg[80];
-  time_t statusmsg_time;
   char mode;
+  char full_refresh;
+  char welcome_msg;
+  char msgbar_updated;
 };
 
 typedef struct {
@@ -507,6 +509,10 @@ void editorUpdateRow(erow *row) {
 }
 
 void editorInsertRow(int at, char *s, size_t len) {
+
+  // Update screen
+  E.full_refresh = 1;
+
   if (at < 0 || at > E.numrows) return;
   E.row = realloc(E.row, sizeof(erow) * (E.numrows + 1));
   memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - at));
@@ -528,6 +534,10 @@ void editorFreeRow(erow *row) {
   free(row->chars);
 }
 void editorDelRow(int at) {
+
+  // Update screen
+  E.full_refresh = 1;
+
   if (at < 0 || at >= E.numrows) return;
   editorFreeRow(&E.row[at]);
   memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numrows - at - 1));
@@ -536,6 +546,17 @@ void editorDelRow(int at) {
 }
 
 void editorRowInsertChar(erow *row, int at, int c) {
+  int n;
+
+  // Update screen
+  printf("\33x5");
+  putchar(c);
+  if (at != row->size) {
+    for (n=at; n < row->size; n++) {
+      putchar(row->chars[n]);
+    }
+  }
+
   if (at < 0 || at > row->size) at = row->size;
   row->chars = realloc(row->chars, row->size + 2);
   memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
@@ -555,6 +576,17 @@ void editorRowAppendString(erow *row, char *s, size_t len) {
 }
 
 void editorRowDelChar(erow *row, int at) {
+  int n;
+
+  // Update screen
+  printf("\33x5\b");
+  if (at != row->size) {
+    for (n=at+1; n < row->size; n++) {
+      putchar(row->chars[n]);
+    }
+  }
+  printf("\33K");
+
   if (at < 0 || at >= row->size) return;
   memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
   row->size--;
@@ -813,15 +845,19 @@ void editorScroll() {
 
   if (E.cy < E.rowoff) {
     E.rowoff = E.cy;
+    E.full_refresh = 1;
   }
   if (E.cy >= E.rowoff + E.screenrows) {
     E.rowoff = E.cy - E.screenrows + 1;
+    E.full_refresh = 1;
   }
   if (E.rx < E.coloff) {
     E.coloff = E.rx;
+    E.full_refresh = 1;
   }
   if (E.rx >= E.coloff + E.screencols) {
     E.coloff = E.rx - E.screencols + 1;
+    E.full_refresh = 1;
   }
 }
 
@@ -837,7 +873,7 @@ void editorDrawRows(struct abuf *ab) {
   for (y = 0; y < E.screenrows; y++) {
     filerow = y + E.rowoff;
     if (filerow >= E.numrows) {
-      if (E.numrows == 0 && (y >= E.screenrows / 3 && y <= E.screenrows / 3 + 1)) {
+      if (E.welcome_msg && E.numrows == 0 && (y >= E.screenrows / 3 && y <= E.screenrows / 3 + 1)) {
         switch (n) {
           case 0:
             sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
@@ -859,7 +895,8 @@ void editorDrawRows(struct abuf *ab) {
         while (padding--) abAppend(ab, " ", 1);
         abAppend(ab, welcome, welcomelen);
       } else {
-        abAppend(ab, "~", 1);
+        if (y>0)
+          abAppend(ab, "~", 1);
       }
     } else {
       len = E.row[filerow].rsize - E.coloff;
@@ -871,11 +908,16 @@ void editorDrawRows(struct abuf *ab) {
     abAppend(ab, "\33K", 2);
     abAppend(ab, "\n\r", 2);
   }
+
+  if (E.welcome_msg) {
+    E.welcome_msg = 0;
+    E.full_refresh = 1;
+  }
 }
 
 void editorDrawStatusBar(struct abuf *ab) {
-  char status[80], rstatus[80];
-  int len, rlen;
+  char status[80];
+  int len;
   char mode;
 
   switch (E.mode) {
@@ -887,34 +929,31 @@ void editorDrawStatusBar(struct abuf *ab) {
       break;
   }
 
-  len = sprintf(status, "%c %.20s - %d lines %s",
+  len = sprintf(status, "%c %.20s %s %d/%d\33K",
     mode,
-    E.filename ? E.filename : "[No Name]", E.numrows,
-    E.dirty ? "(modified)" : "");
-  rlen = sprintf(rstatus, "%d/%d", E.cy + 1, E.numrows);
-  if (len > E.screencols) len = E.screencols;
+    E.filename ? E.filename : "No file",
+    E.dirty ? "[Modified]" : "",
+    E.cy + 1, E.numrows);
+  abAppendGotoxy(ab, 0, 22);
   abAppend(ab, status, len);
 
-  while (len < E.screencols) {
-    if (E.screencols - len - 1 == rlen) {
-      abAppend(ab, rstatus, rlen);
-      break;
-    } else {
-      abAppend(ab, " ", 1);
-      len++;
-    }
-  }
-  abAppend(ab, "\r\n", 2);
 }
 
 void editorDrawMessageBar(struct abuf *ab) {
   int msglen;
 
-  abAppend(ab, "\33K", 2);
-  msglen = strlen(E.statusmsg);
-  if (msglen > E.screencols) msglen = E.screencols;
-  if (msglen && _time() - E.statusmsg_time < 5)
-    abAppend(ab, E.statusmsg, msglen);
+  if (E.msgbar_updated) {
+    E.msgbar_updated = 0;
+    abAppendGotoxy(ab, 0, 23);
+    msglen = strlen(E.statusmsg);
+    if (msglen > E.screencols) msglen = E.screencols;
+    if (msglen) {
+      abAppend(ab, E.statusmsg, msglen);
+      E.statusmsg[0] = '\0';
+      E.msgbar_updated = 1;
+    }
+    abAppend(ab, "\33K", 2);
+  }
 }
 
 void printBuff(struct abuf *ab) {
@@ -932,7 +971,10 @@ void editorRefreshScreen() {
   abAppend(&ab, "\33x5", 3); // Hide cursor
   abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
 
-  editorDrawRows(&ab);
+  if (E.full_refresh) {
+    E.full_refresh = 0;
+    editorDrawRows(&ab);
+  }
   editorDrawStatusBar(&ab);
   editorDrawMessageBar(&ab);
 
@@ -950,7 +992,7 @@ void editorSetStatusMessage(const char *fmt, ...) {
   va_start(ap, fmt);
   vsprintf(E.statusmsg, fmt, ap);
   va_end(ap);
-  E.statusmsg_time = _time();
+  E.msgbar_updated = 1;
 }
 /*** output }}} ***/
 
@@ -1063,6 +1105,8 @@ void editorMoveCursor(char key) {
     case ARROW_RIGHT:
       if (row && E.cx < row->size) {
         E.cx++;
+      } else if (E.mode == M_INSERT && E.cx == 0 && row->size == 0) {
+        E.cx++;
       } else if (row && E.cx == row->size && E.mode != M_COMMAND) {
         E.cy++;
         E.cx = 0;
@@ -1127,7 +1171,8 @@ void editorProcessKeypress() {
         editorMoveCursor(c);
         break;
       case CTRL_KEY('l'):
-        // TODO redraw screen
+        E.full_refresh = 1;
+        editorRefreshScreen();
         break;
       case ESC:
         printf("\a"); // BEEP
@@ -1224,8 +1269,10 @@ void init() {
   E.dirty = 0;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
-  E.statusmsg_time = 0;
   E.mode = M_COMMAND;
+  E.full_refresh = 1;
+  E.welcome_msg = 1;
+  E.msgbar_updated = 1;
 
   // Set inverted text area
   for (n=0; n < (E.screenrows+2) * E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n, 0x00);
@@ -1278,8 +1325,6 @@ int main(char **argv, int argc) {
   if (filename[0] != '\0') {
     editorOpen(filename);
   }
-
-  editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
 
   while (1) {
     editorRefreshScreen();
