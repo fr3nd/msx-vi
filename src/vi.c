@@ -6,7 +6,7 @@
 #include <time.h>
 #include <stdarg.h>
 
-#define MSXVI_VERSION "0.0.1a"
+#define MSXVI_VERSION "0.0.2a"
 #define MSXVI_TAB_STOP 8
 #define FILE_BUFFER_LENGTH 512
 
