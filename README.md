@@ -33,6 +33,6 @@ Few months later I discovered the [Build Your Own Text Editor](https://viewsourc
 
 Try it online:
 
-* http://webmsx.org/?PRESETS=DOS2&DISKA_FILES_URL=https://github.com/fr3nd/msx-vi/releases/download/v0.0.1-alpha/vi.zip
+* http://webmsx.org/?PRESETS=DOS2&DISKA_FILES_URL=https://github.com/fr3nd/msx-vi/releases/download/v0.0.2-alpha/vi.zip
 
 
