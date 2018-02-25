@@ -921,7 +921,6 @@ void editorDrawMessageBar(struct abuf *ab) {
   if (E.msgbar_updated) {
     E.msgbar_updated = 0;
     abAppendGotoxy(ab, 0, 23);
-    abAppend(ab, "\33K", 2);
     msglen = strlen(E.statusmsg);
     if (msglen > E.screencols) msglen = E.screencols;
     if (msglen) {
@@ -929,6 +928,7 @@ void editorDrawMessageBar(struct abuf *ab) {
       E.statusmsg[0] = '\0';
       E.msgbar_updated = 1;
     }
+    abAppend(ab, "\33K", 2);
   }
 }
 
