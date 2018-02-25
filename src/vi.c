@@ -905,24 +905,14 @@ void editorDrawStatusBar(struct abuf *ab) {
       break;
   }
 
-  len = sprintf(status, "%c %.20s - %d lines %s",
+  len = sprintf(status, "%c %.20s %s %d/%d\33K",
     mode,
-    E.filename ? E.filename : "[No Name]", E.numrows,
-    E.dirty ? "(modified)" : "");
-  rlen = sprintf(rstatus, "%d/%d", E.cy + 1, E.numrows);
-  if (len > E.screencols) len = E.screencols;
+    E.filename ? E.filename : "No file",
+    E.dirty ? "[Modified]" : "",
+    E.cy + 1, E.numrows);
   abAppendGotoxy(ab, 0, 22);
   abAppend(ab, status, len);
 
-  while (len < E.screencols) {
-    if (E.screencols - len - 1 == rlen) {
-      abAppend(ab, rstatus, rlen);
-      break;
-    } else {
-      abAppend(ab, " ", 1);
-      len++;
-    }
-  }
 }
 
 void editorDrawMessageBar(struct abuf *ab) {
