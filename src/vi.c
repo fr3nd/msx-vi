@@ -895,7 +895,8 @@ void editorDrawRows(struct abuf *ab) {
         while (padding--) abAppend(ab, " ", 1);
         abAppend(ab, welcome, welcomelen);
       } else {
-        abAppend(ab, "~", 1);
+        if (y>0)
+          abAppend(ab, "~", 1);
       }
     } else {
       len = E.row[filerow].rsize - E.coloff;
