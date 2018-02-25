@@ -841,15 +841,19 @@ void editorScroll() {
 
   if (E.cy < E.rowoff) {
     E.rowoff = E.cy;
+    E.full_refresh = 1;
   }
   if (E.cy >= E.rowoff + E.screenrows) {
     E.rowoff = E.cy - E.screenrows + 1;
+    E.full_refresh = 1;
   }
   if (E.rx < E.coloff) {
     E.coloff = E.rx;
+    E.full_refresh = 1;
   }
   if (E.rx >= E.coloff + E.screencols) {
     E.coloff = E.rx - E.screencols + 1;
+    E.full_refresh = 1;
   }
 }
 
