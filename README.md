@@ -6,7 +6,7 @@ A vi text editor clone for the MSX 8-bit home computer
 
 msx-vi is a clone of the Vi text editor for the MSX computer.
 
-MSX is a 8-bit computer system created in 1983 by Microsoft and ASCII Corporation on 1983. It was very popular in Japan, some European countries, Korea and Brazil. Although it's not widely used nowadays, it still has a great number of enthusiasts creating hardware and software for the platform.
+MSX is a 8-bit computer system created in 1983 by Microsoft and ASCII Corporation. It was very popular in Japan, some European countries, Korea and Brazil. Although it's not widely used nowadays, it still has a great number of enthusiasts creating hardware and software for the platform.
 
 Vi is a text editor originally created for the Unix operating system. It became very popular and today there are many different clones available on multiple platforms.
 
