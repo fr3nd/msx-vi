@@ -568,6 +568,17 @@ void editorRowAppendString(erow *row, char *s, size_t len) {
 }
 
 void editorRowDelChar(erow *row, int at) {
+  int n;
+
+  // Update screen
+  printf("\33x5\b");
+  if (at != row->size) {
+    for (n=at+1; n < row->size; n++) {
+      putchar(row->chars[n]);
+    }
+  }
+  printf("\33K");
+
   if (at < 0 || at >= row->size) return;
   memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
   row->size--;
