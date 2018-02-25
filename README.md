@@ -19,7 +19,7 @@ Vi is a text editor originally created for the Unix operating system. It became 
 
 My passion for technology started when my parents gave me as a present my first computer. I was 9 years old and the computer was a MSX. At the beginning I was using it just to play games, but I started learning programming by myself (first Logo and Basic later). Nowadays I still enjoy playing with MSX and trying to learn better how it works internally.
 
-Thanks to Javi Lavandeira's tutorials [Relearning MSX](https://www.lavandeira.net/relearning-msx/) on how to program with C for the MSX, I started to do my first programs and tests, and I started to have the idea on writing a vi clone. As far as I know there is nothing similar on the MSX.
+Thanks to Javi Lavandeira's tutorials [Relearning MSX](https://www.lavandeira.net/relearning-msx/) on how to program with C for the MSX, I started to write my first programs and tests, and I started to have the idea on writing a vi clone. As far as I know there is nothing similar on the MSX.
 
 I started writing code, but a text editor is way more complex than it looks. Memory management was very difficult for my limited C knowledge. At the end I abandoned the project.
 
@@ -27,7 +27,7 @@ Few months later I discovered the [Build Your Own Text Editor](https://viewsourc
 
 ## Download
 
-* https://github.com/fr3nd/msx-vi/releases
+* [Current releases](https://github.com/fr3nd/msx-vi/releases)
 
 ## Online Emulator
 
