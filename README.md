@@ -35,7 +35,7 @@ Try it online:
 
 * [MSX-vi on WebMSX](http://webmsx.org/?PRESETS=DOS2&DISKA_FILES_URL=https://github.com/fr3nd/msx-vi/releases/download/v0.0.2-alpha/vi.zip)
 
-**Note**: In some keyboards, the ```:``` doesn't work in WebMSX.
+**Note**: In some keyboards, the ```:``` key doesn't work in WebMSX.
 
 ## Screenshots
 
