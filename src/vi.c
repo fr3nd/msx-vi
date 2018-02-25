@@ -530,6 +530,10 @@ void editorFreeRow(erow *row) {
   free(row->chars);
 }
 void editorDelRow(int at) {
+
+  // Update screen
+  E.full_refresh = 1;
+
   if (at < 0 || at >= E.numrows) return;
   editorFreeRow(&E.row[at]);
   memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numrows - at - 1));
