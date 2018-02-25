@@ -36,3 +36,9 @@ Try it online:
 * [MSX-vi on WebMSX](http://webmsx.org/?PRESETS=DOS2&DISKA_FILES_URL=https://github.com/fr3nd/msx-vi/releases/download/v0.0.2-alpha/vi.zip)
 
 **Note**: In some keyboards, the ```:``` doesn't work in WebMSX.
+
+## Screenshots
+
+![MSX-vi welcome screen](/screenshots/openmsx0001.png?raw=true "MSX-vi welcome screen")
+
+![MSX-vi editing large file](/screenshots/openmsx0002.png?raw=true "MSX-vi editing large file")
