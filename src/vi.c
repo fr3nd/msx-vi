@@ -892,8 +892,8 @@ void editorDrawRows(struct abuf *ab) {
 }
 
 void editorDrawStatusBar(struct abuf *ab) {
-  char status[80], rstatus[80];
-  int len, rlen;
+  char status[80];
+  int len;
   char mode;
 
   switch (E.mode) {
