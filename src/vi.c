@@ -1324,8 +1324,6 @@ int main(char **argv, int argc) {
     editorOpen(filename);
   }
 
-  editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
-
   while (1) {
     editorRefreshScreen();
     editorProcessKeypress();
