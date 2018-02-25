@@ -1105,6 +1105,8 @@ void editorMoveCursor(char key) {
     case ARROW_RIGHT:
       if (row && E.cx < row->size) {
         E.cx++;
+      } else if (E.mode == M_INSERT && E.cx == 0 && row->size == 0) {
+        E.cx++;
       } else if (row && E.cx == row->size && E.mode != M_COMMAND) {
         E.cy++;
         E.cx = 0;
