@@ -39,6 +39,6 @@ Try it online:
 
 ## Screenshots
 
-![MSX-vi welcome screen](https://raw.githubusercontent.com/fr3nd/msx-vi/master/screenshots/openmsx0001.png "MSX-vi welcome screen")
+![MSX-vi welcome screen](https://raw.githubusercontent.com/fr3nd/msx-vi/master/img/openmsx0001.png "MSX-vi welcome screen")
 
-![MSX-vi editing large file](https://raw.githubusercontent.com/fr3nd/msx-vi/master/screenshots/openmsx0002.png "MSX-vi editing large file")
+![MSX-vi editing large file](https://raw.githubusercontent.com/fr3nd/msx-vi/master/img/openmsx0002.png "MSX-vi editing large file")
