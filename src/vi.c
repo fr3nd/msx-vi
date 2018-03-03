@@ -697,29 +697,6 @@ int write(char* buf, unsigned int size, char fp) __naked {
   __endasm;
 }
 
-char *editorRowsToString(int *buflen) {
-  int totlen = 0;
-  int j;
-  char *buf;
-  char *p;
-
-  for (j = 0; j < E.numrows; j++)
-    totlen += E.row[j].size + 1;
-  *buflen = totlen;
-  buf = malloc(totlen);
-  p = buf;
-  for (j = 0; j < E.numrows; j++) {
-    memcpy(p, E.row[j].chars, E.row[j].size);
-    //strcpy(p, E.row[j].chars);
-    p += E.row[j].size;
-    *p = '\n';
-    p++;
-    *p = '\r';
-    p++;
-  }
-  return buf;
-}
-
 void editorOpen(char *filename) {
   int fp;
   char buffer[FILE_BUFFER_LENGTH];
@@ -768,33 +745,32 @@ void editorOpen(char *filename) {
 }
 
 int editorSave(char *filename) {
-  int len;
-  char *buf;
-  int fd;
-  int ret;
+  int fp;
+  char line_buffer[LINE_BUFFER_LENGTH];
+  int n;
+  int bytes_written;
+  int total_written;
 
   if (filename == NULL) {
     editorSetStatusMessage("No current filename");
     return 1;
   }
 
-  buf = editorRowsToString(&len);
-  fd = open(E.filename, O_RDWR);
-  if (fd != -1) {
-    if (write(buf, len, fd) == len) {
-      close(fd);
-      free(buf);
-      E.dirty = 0;
-      editorSetStatusMessage("%d bytes written to disk: '%s'", len, filename);
-      E.filename = filename;
-      return 0;
+  total_written = 0;
+  fp = open(E.filename, O_RDWR);
+  if (fp >= 0) {
+    for (n=0; n < E.numrows; n++) {
+      strcpy(line_buffer, E.row[n].chars);
+      line_buffer[E.row[n].size] = '\r';
+      line_buffer[E.row[n].size+1] = '\n';
+      bytes_written = write(line_buffer, E.row[n].size+2, fp);
+      total_written = total_written + bytes_written;
     }
-    close(fd);
+    editorSetStatusMessage("%d bytes written to disk: %s", total_written, E.filename);
+    E.dirty = 0;
+    return 0;
   }
-  free(buf);
-  // TODO: Implement error message
-  //editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
-  editorSetStatusMessage("Can't save! I/O error");
+  editorSetStatusMessage("Error saving to disk.");
   return 1;
 }
 
