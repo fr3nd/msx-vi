@@ -368,7 +368,8 @@ void die(const char *s) {
   cls();
   gotoxy(0, 0);
   perror(s);
-  quit_program(1);
+  clear_inverted_area();
+  exit(1);
 }
 
 int getCursorPosition(int *rows, int *cols) {
@@ -483,6 +484,13 @@ void set_inverted_area(void) {
   vdp_w(0x4f, 12); // blink colors
   set_blink_colors(15, 4);
   vdp_w(0xf0, 13); // blink speed: stopped
+}
+
+void clear_inverted_area(void) {
+  int n;
+
+  // Set back blink table to blank
+  for (n=0; n < (E.screenrows+2) * E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n, 0x00);
 }
 
 /*** end graphic functions }}} ***/
@@ -1290,10 +1298,8 @@ void init() {
 void quit_program(int exit_code) {
   int n;
 
-  // Set back blink table to blank
-  for (n=0; n < (E.screenrows+2) * E.screencols/8; n++) vpoke(TEXT2_COLOR_TABLE+n, 0x00);
-  initxt(80);
   cls();
+  clear_inverted_area();
   exit(exit_code);
 }
 
