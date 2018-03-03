@@ -910,7 +910,6 @@ void editorDrawRows(struct abuf *ab) {
 
   if (E.welcome_msg) {
     E.welcome_msg = 0;
-    E.full_refresh = 1;
   }
 }
 
