@@ -471,6 +471,15 @@ unsigned char vpeek(unsigned int address) __naked {
   __endasm;
 }
 
+void set_inverted_area(void) {
+  int i;
+
+  for (i=0; i < (E.screenrows+2) * E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i, 0x00);
+  for (i=0; i < E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i + (E.screencols/8*22), 0xff);
+  vdp_w(0x4f, 12); // blink colors
+  vdp_w(0xf0, 13); // blink speed: stopped
+}
+
 /*** end graphic functions }}} ***/
 
 /*** row operations {{{ ***/
@@ -709,14 +718,15 @@ void editorOpen(char *filename) {
   E.filename = strdup(filename);
 
   fp  = open(filename, O_RDONLY);
-  if (fp < 0) die("Error opening file");
+  if (fp < 0) die("Error opening file.");
 
   m = 0; // Counter for line buffer
   total_read = 0;
+  printf("\33x5\33Y6 \33KOpening file: %s", filename);
   while(1) {
     bytes_read = read(buffer, sizeof(buffer), fp);
     total_read = total_read + bytes_read;
-    printf("\33x5\vReading file: %d bytes read", total_read);
+    printf("\33Y7 \33K%d bytes read.", total_read);
 
     for (n=0; n<bytes_read ;n++) {
       if (buffer[n] != '\n' && buffer[n] != '\r') {
@@ -740,6 +750,7 @@ void editorOpen(char *filename) {
     }
   }
 
+  printf("\33Y6 \33KDone!");
   close(fp);
   E.dirty = 0;
 }
@@ -756,6 +767,7 @@ int editorSave(char *filename) {
     return 1;
   }
 
+  printf("\33x5\33Y7 \33K");
   total_written = 0;
   fp = open(E.filename, O_RDWR);
   if (fp >= 0) {
@@ -765,8 +777,9 @@ int editorSave(char *filename) {
       line_buffer[E.row[n].size+1] = '\n';
       bytes_written = write(line_buffer, E.row[n].size+2, fp);
       total_written = total_written + bytes_written;
+      printf("\33Y7 %d bytes written to disk: %s", total_written, E.filename);
     }
-    editorSetStatusMessage("%d bytes written to disk: %s", total_written, E.filename);
+    editorSetStatusMessage("%d bytes written to disk: %s Done!", total_written, E.filename);
     E.dirty = 0;
     return 0;
   }
@@ -1288,15 +1301,12 @@ int main(char **argv, int argc) {
     }
   }
 
+  // Set inverted text area
+  set_inverted_area();
+
   if (filename[0] != '\0') {
     editorOpen(filename);
   }
-
-  // Set inverted text area
-  for (i=0; i < (E.screenrows+2) * E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i, 0x00);
-  for (i=0; i < E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i + (E.screencols/8*22), 0xff);
-  vdp_w(0x4f, 12); // blink colors
-  vdp_w(0xf0, 13); // blink speed: stopped
 
   while (1) {
     editorRefreshScreen();
