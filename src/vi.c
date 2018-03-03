@@ -8,7 +8,8 @@
 
 #define MSXVI_VERSION "0.0.2a"
 #define MSXVI_TAB_STOP 8
-#define FILE_BUFFER_LENGTH 512
+#define FILE_BUFFER_LENGTH 1024
+#define LINE_BUFFER_LENGTH 1024
 
 #define TEXT2_COLOR_TABLE 0x00800
 
@@ -696,38 +697,6 @@ int write(char* buf, unsigned int size, char fp) __naked {
   __endasm;
 }
 
-//* Read one char from file
-char fgetc(int fp) {
-  char c[1];
-
-  printf(".");
-  if ( read(c, sizeof(char), fp) != sizeof(char) ) {
-    return EOF;
-  } else {
-    return *c;
-  }
-}
-
-//* Read line from file
-char *fgets(char *s, int n, int fp) {
-  int c = 0;
-  char *cptr;
-
-  cptr = s;
-
-  while (--n > 0 && (c = fgetc(fp)) != EOF) {
-    if (c != '\n') {
-      if (c != '\r') {
-        *cptr++ = c;
-      }
-    } else {
-      break;
-    }
-  }
-  *cptr = '\0';
-  return (c == EOF && cptr == s)? NULL: s;
-}
-
 char *editorRowsToString(int *buflen) {
   int totlen = 0;
   int j;
@@ -753,15 +722,45 @@ char *editorRowsToString(int *buflen) {
 
 void editorOpen(char *filename) {
   int fp;
-  char buffer[FILE_BUFFER_LENGTH+1];
+  char buffer[FILE_BUFFER_LENGTH];
+  char line_buffer[LINE_BUFFER_LENGTH];
+  int bytes_read;
+  int total_read;
+  int n, m;
 
   free(E.filename);
   E.filename = strdup(filename);
 
   fp  = open(filename, O_RDONLY);
   if (fp < 0) die("Error opening file");
-  while (fgets(buffer, FILE_BUFFER_LENGTH, fp) != NULL) {
-    editorInsertRow(E.numrows, buffer, strlen(buffer));
+
+  m = 0; // Counter for line buffer
+  total_read = 0;
+  while(1) {
+    bytes_read = read(buffer, sizeof(buffer), fp);
+    total_read = total_read + bytes_read;
+    printf("\33x5\vReading file: %d bytes read", total_read);
+
+    for (n=0; n<bytes_read ;n++) {
+      if (buffer[n] != '\n' && buffer[n] != '\r') {
+        line_buffer[m] = buffer[n];
+        m++;
+      } else if (buffer[n] == '\n') {
+        line_buffer[m] = buffer[n];
+        line_buffer[m+1] = '\0';
+        editorInsertRow(E.numrows, line_buffer, m);
+        m = 0;
+      }
+
+      if (m >= LINE_BUFFER_LENGTH) {
+        die("Error opening file: line too long.");
+      }
+    }
+
+    if (bytes_read < sizeof(buffer)) {
+      // EOF
+      break;
+    }
   }
 
   close(fp);
