@@ -471,12 +471,17 @@ unsigned char vpeek(unsigned int address) __naked {
   __endasm;
 }
 
+void set_blink_colors(char fg, char bg) {
+  vdp_w(bg*16+fg, 12);
+}
+
 void set_inverted_area(void) {
   int i;
 
   for (i=0; i < (E.screenrows+2) * E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i, 0x00);
   for (i=0; i < E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i + (E.screencols/8*22), 0xff);
   vdp_w(0x4f, 12); // blink colors
+  set_blink_colors(15, 4);
   vdp_w(0xf0, 13); // blink speed: stopped
 }
 
@@ -987,7 +992,10 @@ void editorSetStatusMessage(const char *fmt, ...) {
 
 void runCommand() {
   char *command;
+  char *token;
   char f[13];
+  char params[40];
+  int n;
 
   command = editorPrompt(":%s");
 
@@ -1009,6 +1017,24 @@ void runCommand() {
       if (editorSave(E.filename) == 0) {
         quit_program(0);
       }
+    } else if (strncmp(command, "color", 5) == 0) {
+      // Setting default colors
+      params[0] = 15;
+      params[1] = 4;
+      params[2] = 4;
+
+      n = 0;
+      token = strtok(command, " ");
+      while( token != NULL ) {
+        token = strtok(NULL, " ");
+        if (atoi(token) > 0 && atoi(token) <= 15) {
+          params[n] = atoi(token);
+        }
+        n++;
+      }
+      color(params[0], params[1], params[2]);
+      set_blink_colors(params[0], params[1]);
+
     } else {
       editorSetStatusMessage("Not an editor command: %s", command);
     }
