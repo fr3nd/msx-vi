@@ -855,7 +855,6 @@ void editorFindCallback(char *query, char direction) {
       last_match = current;
       E.cy = current;
       E.cx = editorRowRxToCx(row, match - row->render);
-      E.rowoff = E.numrows;
       return;
     }
   }
