@@ -366,10 +366,14 @@ time_t _time() {
   return (((( ((date.year-1970)*365) + (date.month * 30) + date.day ) * 24 + time.hour) * 60 + time.min) * 60 + time.sec);
 }
 
-void die(const char *s) {
+void die(const char *s, ...) {
+  va_list ap;
+  va_start(ap, s);
   cls();
   gotoxy(0, 0);
-  perror(s);
+  printf("*** ");
+  vprintf(s, ap);
+  printf("\r\n");
   clear_inverted_area();
   exit(1);
 }
