@@ -1250,7 +1250,7 @@ void editorMoveCursor(char key) {
 
 void editorProcessKeypress() {
   char c;
-  
+
   c = editorReadKey();
 
   if (E.mode == M_COMMAND) {
