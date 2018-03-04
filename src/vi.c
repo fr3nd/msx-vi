@@ -1211,7 +1211,15 @@ void editorProcessKeypress() {
         E.mode = M_INSERT;
         editorMoveCursor(ARROW_RIGHT);
         break;
+      case 'A':
+        E.mode = M_INSERT;
+        editorMoveCursor(END_KEY);
+        break;
       case 'i':
+        E.mode = M_INSERT;
+        break;
+      case 'I':
+        editorMoveCursor(HOME_KEY);
         E.mode = M_INSERT;
         break;
       case 'o':
