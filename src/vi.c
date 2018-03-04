@@ -602,7 +602,7 @@ void editorRowDelChar(erow *row, int at) {
   int n;
 
   // Update screen
-  printf("\33x5\b");
+  printf("\33x5");
   if (at != row->size) {
     for (n=at+1; n < row->size; n++) {
       putchar(row->chars[n]);
@@ -644,8 +644,11 @@ void editorInsertNewline() {
   E.cx = 0;
 }
 
-void editorDelChar() {
+void editorDelChar(char do_backspace) {
   erow *row;
+
+  if (do_backspace)
+    printf("\b");
 
   if (E.cy == E.numrows) return;
   if (E.cx == 0 && E.cy == 0) return;
@@ -1235,6 +1238,13 @@ void editorProcessKeypress() {
         editorInsertNewline();
         editorMoveCursor(ARROW_UP);
         break;
+      case 'x':
+        editorMoveCursor(ARROW_RIGHT);
+        editorDelChar(0);
+        break;
+      case 'X':
+        editorDelChar(1);
+        break;
     }
   } else if (E.mode == M_INSERT) {
     switch (c) {
@@ -1244,7 +1254,7 @@ void editorProcessKeypress() {
       case BACKSPACE:
       case DEL_KEY:
         if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
-        editorDelChar();
+        editorDelChar(1);
         break;
       case ESC:
         E.mode = M_COMMAND;
