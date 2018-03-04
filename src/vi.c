@@ -29,22 +29,37 @@
 #define M_COMMAND 0
 #define M_INSERT  1
 
-/* open/creat flags */
+/* open/create flags */
 #define  O_RDONLY   0x01
 #define  O_WRONLY   0x02
 #define  O_RDWR     0x00
 #define  O_INHERIT  0x04
 
+/* file attributes */
+#define READ_ONLY    0x01
+#define HIDDEN_FILE  0x02
+#define SYSTEM_FILE  0x04
+#define VOLUME_NAME  0x08
+#define DIRECTORY    0x10
+#define ARCHIVE_BIT  0x20
+#define DEVICE_BIT   0x80
+
 /* DOS calls */
 #define TERM    #0x62
 #define DOSVER  #0x6F
 #define OPEN    #0x43
+#define CREATE  #0x44
 #define CLOSE   #0x45
 #define READ    #0x48
 #define WRITE   #0x49
 #define _EOF    0xC7
 #define GTIME   #0x2C
 #define GDATE   #0x2A
+
+/* DOS errors */
+#define NOFIL   0xD7
+#define IATTR   0xCF
+#define DIRX    0xCC
 
 /* BIOS calls */
 #define CHGET  #0x009F
@@ -70,7 +85,6 @@
 #define BAKCLR 0xF3EA
 #define BDRCLR 0xF3EB
 
-#define perror(x) {printf("*** ");printf(x);printf("\r\n");}
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define DOSCALL  call 5
 #define BIOSCALL ld iy,(EXPTBL-1)\
@@ -240,7 +254,7 @@ void cls(void) __naked {
   __endasm;
 }
 
-int open(char *fn, int mode) __naked {
+int open(char *fn, char mode) __naked {
   fn;
   mode;
   __asm
@@ -256,13 +270,43 @@ int open(char *fn, int mode) __naked {
 
     cp #0
     jr z, open_noerror$
-    ld h, #0xFF
-    ld l, #0xFF
+    ld h, #0xff
+    ld l, a
     jp open_error$
   open_noerror$:
     ld h, #0x00
     ld l, b
   open_error$:
+    pop ix
+    ret
+  __endasm;
+}
+
+int create(char *fn, char mode, char attributes) __naked {
+  fn;
+  mode;
+  attributes;
+  __asm
+    push ix
+    ld ix,#4
+    add ix,sp
+
+    ld e,0(ix)
+    ld d,1(ix)
+    ld a,2(ix)
+    ld b,3(ix)
+    ld c, CREATE
+    DOSCALL
+
+    cp #0
+    jr z, open_noerror$
+    ld h, #0xff
+    ld l, a
+    jp open_error$
+  create_noerror$:
+    ld h, #0x00
+    ld l, b
+  create_error$:
     pop ix
     ret
   __endasm;
@@ -752,7 +796,20 @@ void editorOpen(char *filename) {
   E.filename = strdup(filename);
 
   fp  = open(filename, O_RDONLY);
-  if (fp < 0) die("Error opening file.");
+  if (fp < 0) {
+    // Error is in the least significative byte of fp
+    n = (fp >> 0) & 0xff;
+    if (n == NOFIL) {
+      E.filename = filename;
+      return;
+    } else if (n == DIRX) {
+      die("Error opening file: Specified file is a directory.");
+    } else if (n == IATTR) {
+      die("Error opening file: Invalid attributes.");
+    } else {
+      die("Error opening file: Error code: 0x%X", n);
+    }
+  }
 
   m = 0; // Counter for line buffer
   total_read = 0;
@@ -804,21 +861,38 @@ int editorSave(char *filename) {
   printf("\33x5\33Y7 \33K");
   total_written = 0;
   fp = open(E.filename, O_RDWR);
-  if (fp >= 0) {
-    for (n=0; n < E.numrows; n++) {
-      strcpy(line_buffer, E.row[n].chars);
-      line_buffer[E.row[n].size] = '\r';
-      line_buffer[E.row[n].size+1] = '\n';
-      bytes_written = write(line_buffer, E.row[n].size+2, fp);
-      total_written = total_written + bytes_written;
-      printf("\33Y7 %d bytes written to disk: %s", total_written, E.filename);
+  if (fp < 0) {
+    // Error is in the least significative byte of fp
+    n = (fp >> 0) & 0xff;
+    if (n == NOFIL) {
+      editorSetStatusMessage("Error saving to disk: File does not exist.");
+      fp = create(E.filename, O_RDWR, 0x00);
+      if (fp < 0) {
+        editorSetStatusMessage("Error saving to disk: Error code: 0x%X", n);
+        return 1;
+      }
+    } else if (n == DIRX) {
+      editorSetStatusMessage("Error saving to disk: Specified file is a directory.");
+      return 1;
+    } else if (n == IATTR) {
+      editorSetStatusMessage("Error saving to disk: Invalid attributes.");
+      return 1;
+    } else {
+      editorSetStatusMessage("Error saving to disk: Error code: 0x%X", n);
+      return 1;
     }
-    editorSetStatusMessage("%d bytes written to disk: %s Done!", total_written, E.filename);
-    E.dirty = 0;
-    return 0;
   }
-  editorSetStatusMessage("Error saving to disk.");
-  return 1;
+  for (n=0; n < E.numrows; n++) {
+    strcpy(line_buffer, E.row[n].chars);
+    line_buffer[E.row[n].size] = '\r';
+    line_buffer[E.row[n].size+1] = '\n';
+    bytes_written = write(line_buffer, E.row[n].size+2, fp);
+    total_written = total_written + bytes_written;
+    printf("\33Y7 %d bytes written to disk: %s", total_written, E.filename);
+  }
+  editorSetStatusMessage("%d bytes written to disk: %s Done!", total_written, E.filename);
+  E.dirty = 0;
+  return 0;
 }
 
 /*** file io }}} ***/
