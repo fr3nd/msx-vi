@@ -1166,8 +1166,10 @@ void editorMoveCursor(char key) {
 }
 
 void editorProcessKeypress() {
-  char c = editorReadKey();
-  //printf("%d", c); // for getting key code
+  char c;
+  
+  c = editorReadKey();
+
   if (E.mode == M_COMMAND) {
     switch (c) {
       case CTRL_KEY('d'):
