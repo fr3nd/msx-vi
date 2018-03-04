@@ -820,16 +820,20 @@ int editorSave(char *filename) {
 
 /*** find {{{ ***/
 
-void editorFindCallback(char *query, char direction) {
+void editorFindCallback(char *query, char direction, char direction_mod) {
   char *match;
   erow *row;
   int i;
+  int x;
   int current;
-  static int last_match = -1;
+  static char current_direction = 1;
+
+  if (direction != 0) {
+    current_direction = direction;
+  }
 
   if (query == NULL) {
-    if (E.search_pattern) {
-    } else {
+    if (E.search_pattern == NULL) {
       return;
     }
   } else {
@@ -838,25 +842,28 @@ void editorFindCallback(char *query, char direction) {
     free(query);
   }
 
-  current = last_match;
+  current = E.cy;
   for (i = 0; i < E.numrows; i++) {
-    current += direction;
-    if (current == -1) {
+    if (current <= -1) {
       current = E.numrows - 1;
       editorSetStatusMessage("search hit TOP, continuing at BOTTOM");
-    } else if (current == E.numrows) {
+    } else if (current >= E.numrows) {
       current = 0;
       editorSetStatusMessage("search hit BOTTOM, continuing at TOP");
     }
 
     row = &E.row[current];
     match = strstr(row->render, E.search_pattern);
+
     if (match) {
-      last_match = current;
-      E.cy = current;
-      E.cx = editorRowRxToCx(row, match - row->render);
-      return;
+      x = editorRowRxToCx(row, match - row->render);
+      if (x > E.cx || E.cy != current) {
+        E.cy = current;
+        E.cx = x;
+        return;
+      }
     }
+    current = current + current_direction * direction_mod;
   }
   editorSetStatusMessage("Pattern not found");
 }
@@ -866,10 +873,10 @@ void editorFind(char c) {
 
   if (c == '/') {
     query = editorPrompt("/%s");
-    editorFindCallback(query, 1);
+    editorFindCallback(query, 1, 1);
   } else if (c == '?') {
     query = editorPrompt("?%s");
-    editorFindCallback(query, -1);
+    editorFindCallback(query, -1, 1);
   }
   if (query) {
     free(query);
@@ -1295,12 +1302,10 @@ void editorProcessKeypress() {
         editorFind('?');
         break;
       case 'n': // Next search (forward)
-        // TODO when searching with ? forward should go backwards
-        editorFindCallback(NULL, 1);
+        editorFindCallback(NULL, 0, 1);
         break;
       case 'N': // Previous search (backwards)
-        // TODO when searching with ? backward should go forward
-        editorFindCallback(NULL, -1);
+        editorFindCallback(NULL, 0, -1);
         break;
       case 'a':
         E.mode = M_INSERT;
