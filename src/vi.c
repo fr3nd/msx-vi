@@ -859,6 +859,7 @@ void editorFindCallback(char *query, char direction) {
       break;
     }
   }
+  editorSetStatusMessage("Pattern not found");
 }
 
 void editorFind(char c) {
