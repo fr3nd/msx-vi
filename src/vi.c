@@ -101,6 +101,7 @@ struct editorConfig {
   char full_refresh;
   char welcome_msg;
   char msgbar_updated;
+  char *search_pattern;
 };
 
 typedef struct {
@@ -508,6 +509,18 @@ int editorRowCxToRx(erow *row, int cx) {
   return rx;
 }
 
+int editorRowRxToCx(erow *row, int rx) {
+  int cur_rx = 0;
+  int cx;
+  for (cx = 0; cx < row->size; cx++) {
+    if (row->chars[cx] == '\t')
+      cur_rx += (MSXVI_TAB_STOP - 1) - (cur_rx % MSXVI_TAB_STOP);
+    cur_rx++;
+    if (cur_rx > rx) return cx;
+  }
+  return cx;
+}
+
 void editorUpdateRow(erow *row) {
   int tabs = 0;
   int idx = 0;
@@ -805,6 +818,66 @@ int editorSave(char *filename) {
 
 /*** file io }}} ***/
 
+/*** find {{{ ***/
+
+void editorFindCallback(char *query, char direction) {
+  char *match;
+  erow *row;
+  int i;
+  int current;
+  static int last_match = -1;
+
+  if (query == NULL) {
+    if (E.search_pattern) {
+    } else {
+      return;
+    }
+  } else {
+    free(E.search_pattern);
+    E.search_pattern = strdup(query);
+    free(query);
+  }
+
+  current = last_match;
+  for (i = 0; i < E.numrows; i++) {
+    current += direction;
+    if (current == -1) {
+      current = E.numrows - 1;
+      editorSetStatusMessage("search hit TOP, continuing at BOTTOM");
+    } else if (current == E.numrows) {
+      current = 0;
+      editorSetStatusMessage("search hit BOTTOM, continuing at TOP");
+    }
+
+    row = &E.row[current];
+    match = strstr(row->render, E.search_pattern);
+    if (match) {
+      last_match = current;
+      E.cy = current;
+      E.cx = editorRowRxToCx(row, match - row->render);
+      E.rowoff = E.numrows;
+      break;
+    }
+  }
+}
+
+void editorFind(char c) {
+  char *query;
+
+  if (c == '/') {
+    query = editorPrompt("/%s");
+    editorFindCallback(query, 1);
+  } else if (c == '?') {
+    query = editorPrompt("?%s");
+    editorFindCallback(query, -1);
+  }
+  if (query) {
+    free(query);
+  }
+}
+
+/*** find }}} ***/
+
 /*** append buffer {{{ ***/
 
 struct abuf {
@@ -1074,6 +1147,9 @@ char *editorPrompt(char *prompt) {
       if (buflen != 0) {
         editorSetStatusMessage("");
         return buf;
+      } else {
+        free(buf);
+        return NULL;
       }
     } else if (!iscntrl(c) && c < 128) {
       if (buflen == bufsize - 1) {
@@ -1212,6 +1288,20 @@ void editorProcessKeypress() {
       case ':':
         runCommand();
         break;
+      case '/': // Search word
+        editorFind('/');
+        break;
+      case '?': // Search word backwards
+        editorFind('?');
+        break;
+      case 'n': // Next search (forward)
+        // TODO when searching with ? forward should go backwards
+        editorFindCallback(NULL, 1);
+        break;
+      case 'N': // Previous search (backwards)
+        // TODO when searching with ? backward should go forward
+        editorFindCallback(NULL, -1);
+        break;
       case 'a':
         E.mode = M_INSERT;
         editorMoveCursor(ARROW_RIGHT);
@@ -1312,6 +1402,7 @@ void init() {
   E.full_refresh = 1;
   E.welcome_msg = 1;
   E.msgbar_updated = 1;
+  E.search_pattern = NULL;
 }
 
 
