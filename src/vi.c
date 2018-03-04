@@ -1433,6 +1433,7 @@ int main(char **argv, int argc) {
     if (argv[i][0] == '-') {
       switch (argv[i][1]) {
         /*case 'h':*/
+          /* TODO */
           /*usage();*/
           /*break;*/
         default:
