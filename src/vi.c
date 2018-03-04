@@ -856,7 +856,7 @@ void editorFindCallback(char *query, char direction) {
       E.cy = current;
       E.cx = editorRowRxToCx(row, match - row->render);
       E.rowoff = E.numrows;
-      break;
+      return;
     }
   }
   editorSetStatusMessage("Pattern not found");
