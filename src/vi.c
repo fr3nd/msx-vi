@@ -132,6 +132,7 @@ void editorSetStatusMessage(const char *fmt, ...);
 void editorRefreshScreen();
 char *editorPrompt(char *prompt);
 void quit_program(int exit_code);
+void clear_inverted_area(void);
 
 /*** end prototypes }}} ***/
 
@@ -416,7 +417,7 @@ void color(char fg, char bg, char bd) __naked {
   __endasm;
 }
 
-void vdp_w(char data, char reg) __naked {
+void vdp_w(unsigned char data, char reg) __naked {
   reg;
   data;
   __asm
@@ -869,7 +870,7 @@ void editorFindCallback(char *query, char direction, char direction_mod) {
 }
 
 void editorFind(char c) {
-  char *query;
+  char *query = NULL;
 
   if (c == '/') {
     query = editorPrompt("/%s");
@@ -949,7 +950,7 @@ void editorDrawRows(struct abuf *ab) {
   int y, n;
   int len;
   char welcome[80];
-  int welcomelen;
+  int welcomelen = 0;
   int padding;
   int filerow;
 
@@ -1001,7 +1002,7 @@ void editorDrawRows(struct abuf *ab) {
 void editorDrawStatusBar(struct abuf *ab) {
   char status[80];
   int len;
-  char mode;
+  char mode = '-';
 
   switch (E.mode) {
     case M_COMMAND:
@@ -1144,7 +1145,7 @@ char *editorPrompt(char *prompt) {
   while (1) {
     editorSetStatusMessage(prompt, buf);
     editorRefreshScreen();
-    c = editorReadKey();
+    c = getchar();
     if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
       if (buflen != 0) buf[--buflen] = '\0';
     } else if (c == ESC) {
@@ -1167,10 +1168,6 @@ char *editorPrompt(char *prompt) {
       buf[buflen] = '\0';
     }
   }
-}
-
-char editorReadKey() {
-  return getchar();
 }
 
 void editorMoveCursor(char key) {
@@ -1251,7 +1248,7 @@ void editorMoveCursor(char key) {
 void editorProcessKeypress() {
   char c;
 
-  c = editorReadKey();
+  c = getchar();
 
   if (E.mode == M_COMMAND) {
     switch (c) {
@@ -1412,8 +1409,6 @@ void init() {
 
 
 void quit_program(int exit_code) {
-  int n;
-
   cls();
   clear_inverted_area();
   exit(exit_code);
@@ -1460,9 +1455,6 @@ int main(char **argv, int argc) {
     editorRefreshScreen();
     editorProcessKeypress();
   }
-
-  quit_program(0);
-  return 0;
 }
 
 /*** main }}} ***/
