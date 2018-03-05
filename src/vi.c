@@ -1443,6 +1443,9 @@ void editorProcessKeypress() {
       case 'X':
         editorDelChar(1);
         break;
+      default:
+        editorSetStatusMessage("Command not implemented");
+        break;
     }
   } else if (E.mode == M_INSERT) {
     switch (c) {
