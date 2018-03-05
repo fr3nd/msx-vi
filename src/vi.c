@@ -1382,6 +1382,21 @@ void editorProcessKeypress() {
       case 'N': // Previous search (backwards)
         editorFindCallback(NULL, 0, -1);
         break;
+      case 'g': // gg goes to beginning of file
+        c = getchar();
+        switch (c) {
+          case 'g':
+            E.cx = 0;
+            E.cy = 0;
+            break;
+          default:
+            editorSetStatusMessage("Command not implemented");
+        }
+        break;
+      case 'G': // Go to the end of file
+        E.cy = E.numrows - 1;
+        editorMoveCursor(END_KEY);
+        break;
       case 'a':
         E.mode = M_INSERT;
         editorMoveCursor(ARROW_RIGHT);
