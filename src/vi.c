@@ -1398,6 +1398,16 @@ void editorProcessKeypress() {
         E.cy = E.numrows - 1;
         editorMoveCursor(END_KEY);
         break;
+      case 'd': // starts delete command
+        c = getchar();
+        switch (c) {
+          case 'd': // delete line
+            editorDelRow(E.cy);
+            break;
+          default:
+            editorSetStatusMessage("Command not implemented");
+        }
+        break;
       case 'a':
         E.mode = M_INSERT;
         editorMoveCursor(ARROW_RIGHT);
