@@ -1326,6 +1326,7 @@ void editorMoveCursor(char key) {
 
 void editorProcessKeypress() {
   char c;
+  int n;
 
   c = getchar();
 
@@ -1403,6 +1404,13 @@ void editorProcessKeypress() {
         switch (c) {
           case 'd': // delete line
             editorDelRow(E.cy);
+            break;
+          case '0': // delete until the beginning of a line
+            // TODO screen refresh doesn't work as expected
+            for (n=0; n<E.cx; n++)
+              editorRowDelChar(&E.row[E.cy], 0);
+            E.cx=0;
+            E.full_refresh = 1; // XXX implement proper screen handling
             break;
           default:
             editorSetStatusMessage("Command not implemented");
