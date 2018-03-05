@@ -621,6 +621,7 @@ void editorFreeRow(erow *row) {
 void editorDelRow(int at) {
 
   // Update screen
+  // TODO Only updated required part of screen
   E.full_refresh = 1;
 
   if (at < 0 || at >= E.numrows) return;
