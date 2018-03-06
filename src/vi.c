@@ -1413,6 +1413,11 @@ void editorProcessKeypress() {
             editorDrawRow(E.cy);
             E.cx=0;
             break;
+          case '$': // delete until the end of line
+            for (n=E.row[E.cy].size; n>=E.cx; n--)
+              editorRowDelChar(&E.row[E.cy], n);
+            editorDrawRow(E.cy);
+            break;
           default:
             editorSetStatusMessage("Command not implemented");
         }
