@@ -697,7 +697,7 @@ void editorInsertNewline() {
   E.cx = 0;
 }
 
-void editorDelChar() {
+void editorDelChar(char allow_delete_line) {
   erow *row;
 
   if (E.cy == E.numrows) return;
@@ -706,7 +706,7 @@ void editorDelChar() {
   if (E.cx > 0) {
     editorRowDelChar(row, E.cx - 1);
     E.cx--;
-  } else {
+  } else if (allow_delete_line) {
     E.cx = E.row[E.cy - 1].size;
     editorRowAppendString(&E.row[E.cy - 1], row->chars, row->size);
     editorDelRow(E.cy);
@@ -1126,6 +1126,9 @@ void editorDrawRow(int y) {
     putchar(row->chars[n]);
   }
   printf("\33K");
+
+  if (E.cx == E.row[y].size)
+    E.cx--;
 }
 
 void editorRefreshScreen() {
@@ -1451,11 +1454,11 @@ void editorProcessKeypress() {
         editorMoveCursor(ARROW_UP);
         break;
       case 'x':
-        editorMoveCursor(ARROW_RIGHT);
-        editorDelChar();
+        E.cx++;
+        editorDelChar(0);
         break;
       case 'X':
-        editorDelChar();
+        editorDelChar(0);
         break;
       default:
         editorSetStatusMessage("Command not implemented");
@@ -1469,7 +1472,7 @@ void editorProcessKeypress() {
       case BACKSPACE:
       case DEL_KEY:
         if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
-        editorDelChar();
+        editorDelChar(1);
         break;
       case ESC:
         E.mode = M_COMMAND;
