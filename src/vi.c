@@ -1126,8 +1126,8 @@ void editorDrawRow(int y) {
   }
   printf("\33K");
 
-  if (E.cx == E.row[y].size)
-    E.cx--;
+  if (E.cx >= E.row[y].size && E.mode == M_COMMAND)
+    E.cx = E.row[y].size -1;
 }
 
 void editorRefreshScreen() {
@@ -1469,8 +1469,10 @@ void editorProcessKeypress() {
         editorInsertNewline();
         break;
       case BACKSPACE:
+        editorDelChar(1);
+        break;
       case DEL_KEY:
-        if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
+        E.cx++;
         editorDelChar(1);
         break;
       case ESC:
