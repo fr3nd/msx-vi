@@ -147,6 +147,7 @@ void editorRefreshScreen();
 char *editorPrompt(char *prompt);
 void quit_program(int exit_code);
 void clear_inverted_area(void);
+void editorDrawRow(int y);
 
 /*** end prototypes }}} ***/
 
@@ -662,17 +663,6 @@ void editorRowAppendString(erow *row, char *s, size_t len) {
 }
 
 void editorRowDelChar(erow *row, int at) {
-  int n;
-
-  // Update screen
-  printf("\33x5");
-  if (at != row->size) {
-    for (n=at+1; n < row->size; n++) {
-      putchar(row->chars[n]);
-    }
-  }
-  printf("\33K");
-
   if (at < 0 || at >= row->size) return;
   memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
   row->size--;
@@ -707,11 +697,8 @@ void editorInsertNewline() {
   E.cx = 0;
 }
 
-void editorDelChar(char do_backspace) {
+void editorDelChar() {
   erow *row;
-
-  if (do_backspace)
-    printf("\b");
 
   if (E.cy == E.numrows) return;
   if (E.cx == 0 && E.cy == 0) return;
@@ -725,6 +712,9 @@ void editorDelChar(char do_backspace) {
     editorDelRow(E.cy);
     E.cy--;
   }
+
+  // Update screen
+  editorDrawRow(E.cy);
 }
 
 /*** editor operations }}} ***/
@@ -1126,6 +1116,18 @@ void printBuff(struct abuf *ab) {
   }
 }
 
+void editorDrawRow(int y) {
+  int n;
+  erow *row;
+
+  row = &E.row[y];
+  printf("\33x5\33Y%c%c", y+32, 32);
+  for (n=0; n < row->size; n++) {
+    putchar(row->chars[n]);
+  }
+  printf("\33K");
+}
+
 void editorRefreshScreen() {
   struct abuf ab = ABUF_INIT;
 
@@ -1406,11 +1408,10 @@ void editorProcessKeypress() {
             editorDelRow(E.cy);
             break;
           case '0': // delete until the beginning of a line
-            // TODO screen refresh doesn't work as expected
             for (n=0; n<E.cx; n++)
               editorRowDelChar(&E.row[E.cy], 0);
+            editorDrawRow(E.cy);
             E.cx=0;
-            E.full_refresh = 1; // XXX implement proper screen handling
             break;
           default:
             editorSetStatusMessage("Command not implemented");
@@ -1446,10 +1447,10 @@ void editorProcessKeypress() {
         break;
       case 'x':
         editorMoveCursor(ARROW_RIGHT);
-        editorDelChar(0);
+        editorDelChar();
         break;
       case 'X':
-        editorDelChar(1);
+        editorDelChar();
         break;
       default:
         editorSetStatusMessage("Command not implemented");
@@ -1463,7 +1464,7 @@ void editorProcessKeypress() {
       case BACKSPACE:
       case DEL_KEY:
         if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
-        editorDelChar(1);
+        editorDelChar();
         break;
       case ESC:
         E.mode = M_COMMAND;
