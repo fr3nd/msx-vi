@@ -632,17 +632,6 @@ void editorDelRow(int at) {
 }
 
 void editorRowInsertChar(erow *row, int at, int c) {
-  int n;
-
-  // Update screen
-  printf("\33x5");
-  putchar(c);
-  if (at != row->size) {
-    for (n=at; n < row->size; n++) {
-      putchar(row->chars[n]);
-    }
-  }
-
   if (at < 0 || at > row->size) at = row->size;
   row->chars = realloc(row->chars, row->size + 2);
   memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
@@ -674,9 +663,21 @@ void editorRowDelChar(erow *row, int at) {
 /*** editor operations {{{ ***/
 
 void editorInsertChar(int c) {
+  int n;
+
   if (E.cy == E.numrows) {
     editorInsertRow(E.numrows, "", 0);
   }
+
+  // Update screen
+  printf("\33x5");
+  putchar(c);
+  if (E.cx != E.row[E.cy].size) {
+    for (n=E.cx; n < E.row[E.cy].size; n++) {
+      putchar(E.row[E.cy].chars[n]);
+    }
+  }
+
   editorRowInsertChar(&E.row[E.cy], E.cx, c);
   E.cx++;
 }
