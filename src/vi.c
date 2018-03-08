@@ -1426,6 +1426,12 @@ void editorProcessKeypress() {
             editorSetStatusMessage("Command not implemented");
         }
         break;
+      case 'r': // replace current char
+        c = getchar();
+        editorRowDelChar(&E.row[E.cy], E.cx);
+        editorRowInsertChar(&E.row[E.cy], E.cx, c);
+        editorDrawRow(E.cy);
+        break;
       case 'a':
         E.mode = M_INSERT;
         editorMoveCursor(ARROW_RIGHT);
