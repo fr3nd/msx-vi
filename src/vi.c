@@ -1142,6 +1142,7 @@ void editorRefreshScreen() {
     E.full_refresh = 0;
     editorDrawRows(&ab);
   }
+  // TODO Only draw when required
   editorDrawStatusBar(&ab);
   editorDrawMessageBar(&ab);
 
