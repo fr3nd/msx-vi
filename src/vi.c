@@ -1049,7 +1049,7 @@ void editorDrawRows(struct abuf *ab) {
         while (padding--) abAppend(ab, " ", 1);
         abAppend(ab, welcome, welcomelen);
       } else {
-        if (y>0)
+        if (y > 0)
           abAppend(ab, "~", 1);
       }
     } else {
