@@ -1120,7 +1120,7 @@ void editorDrawRow(int y) {
   erow *row;
 
   row = &E.row[y];
-  printf("\33x5\33Y%c%c", y+32, 32);
+  printf("\33x5\33Y%c%c", y - E.rowoff + 32, 32);
   for (n=0; n < row->size; n++) {
     putchar(row->chars[n]);
   }
