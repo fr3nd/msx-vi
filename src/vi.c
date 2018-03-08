@@ -1410,6 +1410,7 @@ void editorProcessKeypress() {
         switch (c) {
           case 'd': // delete line
             editorDelRow(E.cy);
+            E.cx=0;
             break;
           case '0': // delete until the beginning of a line
             for (n=0; n<E.cx; n++)
