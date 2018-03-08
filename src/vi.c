@@ -1307,7 +1307,7 @@ void editorMoveCursor(char key) {
       }
       break;
     case ARROW_DOWN:
-      if (E.cy < E.numrows) {
+      if (E.cy < E.numrows - 1) {
         E.cy++;
       }
       break;
@@ -1473,15 +1473,13 @@ void editorProcessKeypress() {
       case 'o':
         E.mode = M_INSERT;
         editorMoveCursor(HOME_KEY);
+        editorInsertRow(E.cy+1, "", 0);
         editorMoveCursor(ARROW_DOWN);
-        editorInsertNewline();
-        editorMoveCursor(ARROW_UP);
         break;
       case 'O':
         E.mode = M_INSERT;
         editorMoveCursor(HOME_KEY);
-        editorInsertNewline();
-        editorMoveCursor(ARROW_UP);
+        editorInsertRow(E.cy, "", 0);
         break;
       case 'x':
         E.cx++;
