@@ -1405,7 +1405,7 @@ void editorProcessKeypress() {
         break;
       case 'L': // Go to bottom of screen
         E.cx = 0;
-        n = E.rowoff + E.screenrows - 2;
+        n = E.rowoff + E.screenrows - 1;
         if (n < E.numrows)
           E.cy = n;
         else
