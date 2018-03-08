@@ -1190,7 +1190,7 @@ void runCommand() {
       editorSave(f);
     } else if (strcmp(command, "q!") == 0) {
       quit_program(0);
-    } else if (strcmp(command, "wq") == 0) {
+    } else if (strcmp(command, "wq") == 0 || strcmp(command, "x") == 0) {
       if (editorSave(E.filename) == 0) {
         quit_program(0);
       }
