@@ -1390,6 +1390,28 @@ void editorProcessKeypress() {
       case 'N': // Previous search (backwards)
         editorFindCallback(NULL, 0, -1);
         break;
+      case 'H': // Go to top of screen
+        E.cx = 0;
+        E.cy = E.rowoff;
+        break;
+      case 'M': // Go to the middle of screen
+        E.cx = 0;
+        n = E.rowoff + (E.screenrows - 2) / 2;
+        if (n < E.numrows)
+          E.cy = n;
+        else
+          if (E.numrows > 0)
+            E.cy = E.numrows;
+        break;
+      case 'L': // Go to bottom of screen
+        E.cx = 0;
+        n = E.rowoff + E.screenrows - 2;
+        if (n < E.numrows)
+          E.cy = n;
+        else
+          if (E.numrows > 0)
+            E.cy = E.numrows - 1;
+        break;
       case 'g': // gg goes to beginning of file
         c = getchar();
         switch (c) {
