@@ -1426,7 +1426,7 @@ void editorProcessKeypress() {
         break;
       case 'a':
         E.mode = M_INSERT;
-        E.cx++;
+        editorMoveCursor(ARROW_RIGHT);
         break;
       case 'A':
         E.mode = M_INSERT;
