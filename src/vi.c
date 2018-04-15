@@ -1046,6 +1046,17 @@ void editorDrawRows() {
     len = strlen(welcome);
     gotoxy((E.screencols - len) / 2, 8);
     printf("%s", welcome);
+
+    sprintf(welcome, "This is alpha software with known bugs.");
+    len = strlen(welcome);
+    gotoxy((E.screencols - len) / 2, 10);
+    printf("%s", welcome);
+
+    sprintf(welcome, "Do not use it to edit important files.");
+    len = strlen(welcome);
+    gotoxy((E.screencols - len) / 2, 11);
+    printf("%s", welcome);
+
     E.welcome_msg = 0;
   }
 }
