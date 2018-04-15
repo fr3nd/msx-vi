@@ -985,40 +985,6 @@ void editorFind(char c) {
 
 /*** find }}} ***/
 
-/*** append buffer {{{ ***/
-
-struct abuf {
-  char *b;
-  int len;
-};
-#define ABUF_INIT {NULL, 0}
-
-void abAppend(struct abuf *ab, const char *s, int len) {
-  char *new = realloc(ab->b, ab->len + len);
-  if (new == NULL) return;
-  memcpy(&new[ab->len], s, len);
-  ab->b = new;
-  ab->len += len;
-}
-
-void abAppendGotoxy(struct abuf *ab, char x, char y) {
-  char buf[3];
-
-  abAppend(ab,"\33Y", 2);
-  sprintf(buf, "%c", y + 32);
-  abAppend(ab, buf, 1);
-  sprintf(buf, "%c", x + 32);
-  abAppend(ab, buf, 1);
-}
-
-
-void abFree(struct abuf *ab) {
-  free(ab->b);
-}
-
-
-/*** append buffer }}} ***/
-
 /*** output {{{ ***/
 
 void editorScroll() {
@@ -1039,68 +1005,52 @@ void editorScroll() {
     E.coloff = E.rx;
     E.full_refresh = 1;
   }
-  if (E.rx >= E.coloff + E.screencols) {
-    E.coloff = E.rx - E.screencols + 1;
+  if (E.rx >= E.coloff + E.screencols - 1) {
+    E.coloff = E.rx - E.screencols + 2;
     E.full_refresh = 1;
   }
 }
 
-void editorDrawRows(struct abuf *ab) {
-  int y, n;
-  int len;
+void editorDrawRows() {
+  int y;
   char welcome[80];
-  int welcomelen = 0;
-  int padding;
+  int len = 0;
   int filerow;
 
-  n = 0;
   for (y = 0; y < E.screenrows; y++) {
     filerow = y + E.rowoff;
     if (filerow >= E.numrows) {
-      if (E.welcome_msg && E.numrows == 0 && (y >= E.screenrows / 3 && y <= E.screenrows / 3 + 1)) {
-        switch (n) {
-          case 0:
-            sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
-            welcomelen = strlen(welcome);
-            break;
-          case 1:
-            sprintf(welcome, "by Carles Amigo (fr3nd)");
-            welcomelen = strlen(welcome);
-            break;
-        }
-
-        n++;
-        padding = (E.screencols - welcomelen) / 2;
-
-        if (padding) {
-          abAppend(ab, "~", 1);
-          padding--;
-        }
-        while (padding--) abAppend(ab, " ", 1);
-        abAppend(ab, welcome, welcomelen);
-      } else {
-        if (y > 0)
-          abAppend(ab, "~", 1);
-      }
+      puts("~\33K\r");
     } else {
-      len = E.row[filerow].rsize - E.coloff;
-      if (len < 0) len = 0;
-      if (len > E.screencols) len = E.screencols;
-      abAppend(ab, &E.row[filerow].render[E.coloff], len);
-    }
+      if (strlen(E.row[filerow].render) > E.coloff) {
+        // XXX Hardcoding columns -1 (79)
+        printf("%.79s\33K", &E.row[filerow].render[E.coloff]);
+      } else {
+        printf("\33K");
+      }
 
-    abAppend(ab, "\33K", 2);
-    abAppend(ab, "\n\r", 2);
+      if ((int)strlen(E.row[filerow].render) - (int)E.coloff >= (int)E.screencols) {
+        putchar_vdp('$', 79, y);
+      }
+      gotoxy(0, y+1);
+    }
   }
 
-  if (E.welcome_msg) {
+  if (E.welcome_msg && E.numrows == 0) {
+    sprintf(welcome, "MSX vi -- version %s", MSXVI_VERSION);
+    len = strlen(welcome);
+    gotoxy((E.screencols - len) / 2, 7);
+    printf("%s", welcome);
+
+    sprintf(welcome, "by Carles Amigo (fr3nd)");
+    len = strlen(welcome);
+    gotoxy((E.screencols - len) / 2, 8);
+    printf("%s", welcome);
     E.welcome_msg = 0;
   }
 }
 
-void editorDrawStatusBar(struct abuf *ab) {
-  char status[80];
-  int len;
+void editorDrawStatusBar() {
   char mode = '-';
 
   switch (E.mode) {
@@ -1112,37 +1062,24 @@ void editorDrawStatusBar(struct abuf *ab) {
       break;
   }
 
-  len = sprintf(status, "%c %.20s %s %d/%d\33K",
+  printf("\33Y%c%c%c %.20s %s %d/%d\33K",
+    22 + 32, // Y
+    32, // X
     mode,
     E.filename ? E.filename : "No file",
     E.dirty ? "[Modified]" : "",
     E.cy + 1, E.numrows);
-  abAppendGotoxy(ab, 0, 22);
-  abAppend(ab, status, len);
-
 }
 
-void editorDrawMessageBar(struct abuf *ab) {
-  int msglen;
-
+void editorDrawMessageBar() {
   if (E.msgbar_updated) {
     E.msgbar_updated = 0;
-    abAppendGotoxy(ab, 0, 23);
-    msglen = strlen(E.statusmsg);
-    if (msglen > E.screencols) msglen = E.screencols;
-    if (msglen) {
-      abAppend(ab, E.statusmsg, msglen);
-      E.statusmsg[0] = '\0';
-      E.msgbar_updated = 1;
-    }
-    abAppend(ab, "\33K", 2);
-  }
-}
-
-void printBuff(struct abuf *ab) {
-  int x;
-  for (x = 0; x < ab->len; x++) {
-    putchar(ab->b[x]);
+    printf("\33Y%c%c%s\33K",
+      23 + 32, // Y
+      32, // X
+      E.statusmsg);
+    E.statusmsg[0] = '\0';
+    E.msgbar_updated = 1;
   }
 }
 
@@ -1162,28 +1099,22 @@ void editorDrawRow(int y) {
 }
 
 void editorRefreshScreen() {
-  struct abuf ab = ABUF_INIT;
-
   editorScroll();
 
-  abAppend(&ab, "\33x5", 3); // Hide cursor
-  abAppend(&ab, "\33H", 2);  // Move cursor to 0,0
+  printf("\33x5\33H"); // Hide cursor and gotoxy 0,0
 
   if (E.full_refresh) {
     E.full_refresh = 0;
-    editorDrawRows(&ab);
+    editorDrawRows();
   }
   // TODO Only draw when required
-  editorDrawStatusBar(&ab);
-  editorDrawMessageBar(&ab);
+  editorDrawStatusBar();
+  editorDrawMessageBar();
 
-  abAppendGotoxy(&ab, E.rx - E.coloff, E.cy - E.rowoff);
+  gotoxy(E.rx - E.coloff, E.cy - E.rowoff);
 
-  abAppend(&ab, "\33y5", 3); // Enable cursor
+  printf("\33y5"); // Enable cursor
 
-
-  printBuff(&ab);
-  abFree(&ab);
 }
 
 void editorSetStatusMessage(const char *fmt, ...) {
