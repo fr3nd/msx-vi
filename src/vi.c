@@ -90,6 +90,10 @@
 #define BIOSCALL ld iy,(EXPTBL-1)\
 call CALSLT
 
+// External functions in iolib.rel
+extern unsigned char inp (unsigned char);
+extern outp (unsigned char, unsigned char);
+
 /*** data {{{ ***/
 
 typedef struct erow {
@@ -153,6 +157,37 @@ void editorDrawRow(int y);
 
 /*** functions {{{ ***/
 
+// function (Register number, Data)
+void VRegister(unsigned char reg, unsigned char data) {
+  outp (0x99, data);
+  outp (0x99, reg + 0x80);
+}
+
+// function (VMem Address, 0-Read / 1-Write)
+void VMemadr(long addr, char rw) {
+  unsigned char low, mid, hi;
+
+  low = addr & 0xff;
+  mid = (addr >> 8) & 0x3f;
+  hi = (addr >> 14) & 0x7;
+
+  // HI ADDR
+  outp (0x99, hi);
+  // R # 14
+  outp (0x99, 0x8e);
+
+  // LOW ADDR
+  outp (0x99, low);
+  // MID ADDR
+  if (rw) {
+    // WRITE
+    outp (0x99, mid + 0x40);
+  } else {
+    // READ
+    outp (0x99, mid);
+  }
+}
+
 char dosver(void) __naked {
   __asm
     push ix
@@ -195,6 +230,17 @@ void putchar(char c) __naked {
 
     pop ix
     ret
+  __endasm;
+}
+
+void putchar_vdp(char c, char x, char y) {
+  __asm
+    di
+  __endasm;
+  VMemadr(x + y*E.screencols, 1);
+  outp(0x98, c);
+  __asm
+    ei
   __endasm;
 }
 
