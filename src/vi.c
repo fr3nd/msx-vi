@@ -716,7 +716,7 @@ void editorInsertChar(int c) {
   }
 
   // Update screen
-  printf("\33x5");
+  printf("\33x5"); // Disable cursor
   putchar(c);
   if (E.cx != E.row[E.cy].size) {
     for (n=E.cx; n < E.row[E.cy].size; n++) {
