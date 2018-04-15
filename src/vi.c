@@ -270,24 +270,8 @@ char *strdup (const char *s) {
   return d;                            // Return the new string
 }
 
-void gotoxy(char x, char y) __naked {
-  x;
-  y;
-  __asm
-    push ix
-    ld ix,#4
-    add ix,sp
-
-    ld l,(ix)
-    inc l
-    ld h,1(ix)
-    inc h
-    ld ix,POSIT
-    BIOSCALL
-
-    pop ix
-    ret
-  __endasm;
+void gotoxy(char x, char y) {
+  printf("\33Y%c%c", y + 32, x + 32);
 }
 
 void cls(void) __naked {
