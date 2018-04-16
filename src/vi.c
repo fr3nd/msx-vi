@@ -157,6 +157,15 @@ void editorDrawRowY(int y);
 
 /*** functions {{{ ***/
 
+int isdigits(char *s) {
+  while (*s != '\0') {
+    if (!isdigit(*s++))
+      return 0;
+  }
+
+  return 1;
+}
+
 // function (Register number, Data)
 void VRegister(unsigned char reg, unsigned char data) {
   outp (0x99, data);
@@ -1147,7 +1156,13 @@ void runCommand() {
   command = editorPrompt(":%s");
 
   if (command != NULL && strlen(command) > 0) {
-    if (strcmp(command, "q") == 0) {
+    if (isdigits(command)) {
+        n = (int)atoi(command) - 1;
+        if (n < 0) n = 0;
+        if (n >= E.numrows) n = E.numrows - 1;
+        E.cy = n;
+        E.cx = 0;
+      } else if (strcmp(command, "q") == 0) {
       if (E.dirty) {
         editorSetStatusMessage("No write since last change (:q! overrides)");
       } else {
