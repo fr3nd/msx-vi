@@ -702,8 +702,6 @@ void editorRowDelChar(erow *row, int at) {
 /*** editor operations {{{ ***/
 
 void editorInsertChar(int c) {
-  int n;
-
   if (E.cy == E.numrows) {
     editorInsertRow(E.numrows, "", 0);
   }
