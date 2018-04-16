@@ -151,7 +151,7 @@ void editorRefreshScreen();
 char *editorPrompt(char *prompt);
 void quit_program(int exit_code);
 void clear_inverted_area(void);
-void editorDrawRow(int y);
+void editorDrawRowY(int y);
 
 /*** end prototypes }}} ***/
 
@@ -699,16 +699,9 @@ void editorInsertChar(int c) {
     editorInsertRow(E.numrows, "", 0);
   }
 
-  // Update screen
-  printf("\33x5"); // Disable cursor
-  putchar(c);
-  if (E.cx != E.row[E.cy].size) {
-    for (n=E.cx; n < E.row[E.cy].size; n++) {
-      putchar(E.row[E.cy].chars[n]);
-    }
-  }
-
   editorRowInsertChar(&E.row[E.cy], E.cx, c);
+  // Update screen
+  editorDrawRowY(E.cy);
   E.cx++;
 }
 
@@ -744,7 +737,7 @@ void editorDelChar(char allow_delete_line) {
   }
 
   // Update screen
-  editorDrawRow(E.cy);
+  editorDrawRowY(E.cy);
 }
 
 /*** editor operations }}} ***/
@@ -1011,6 +1004,36 @@ void editorScroll() {
   }
 }
 
+void editorDrawRow(int y) {
+  int filerow;
+
+  filerow = y + E.rowoff;
+
+  if (strlen(E.row[filerow].render) > E.coloff) {
+    // XXX Hardcoding columns -1 (79)
+    printf("%.79s\33K", &E.row[filerow].render[E.coloff]);
+  } else {
+    printf("\33K");
+  }
+
+  if ((int)strlen(E.row[filerow].render) - (int)E.coloff >= (int)E.screencols) {
+    putchar_vdp('$', 79, y);
+  }
+  gotoxy(0, y+1);
+}
+
+void editorDrawRowY(int y) {
+  erow *row;
+
+  row = &E.row[y];
+  printf("\33x5\33Y%c%c", y - E.rowoff + 32, 32);
+
+  editorDrawRow(y);
+
+  if (E.cx >= E.row[y].size && E.mode == M_COMMAND)
+    E.cx = E.row[y].size -1;
+}
+
 void editorDrawRows() {
   int y;
   char welcome[80];
@@ -1022,17 +1045,7 @@ void editorDrawRows() {
     if (filerow >= E.numrows) {
       puts("~\33K\r");
     } else {
-      if (strlen(E.row[filerow].render) > E.coloff) {
-        // XXX Hardcoding columns -1 (79)
-        printf("%.79s\33K", &E.row[filerow].render[E.coloff]);
-      } else {
-        printf("\33K");
-      }
-
-      if ((int)strlen(E.row[filerow].render) - (int)E.coloff >= (int)E.screencols) {
-        putchar_vdp('$', 79, y);
-      }
-      gotoxy(0, y+1);
+      editorDrawRow(y);
     }
   }
 
@@ -1092,21 +1105,6 @@ void editorDrawMessageBar() {
     E.statusmsg[0] = '\0';
     E.msgbar_updated = 1;
   }
-}
-
-void editorDrawRow(int y) {
-  int n;
-  erow *row;
-
-  row = &E.row[y];
-  printf("\33x5\33Y%c%c", y - E.rowoff + 32, 32);
-  for (n=0; n < row->size; n++) {
-    putchar(row->chars[n]);
-  }
-  printf("\33K");
-
-  if (E.cx >= E.row[y].size && E.mode == M_COMMAND)
-    E.cx = E.row[y].size -1;
 }
 
 void editorRefreshScreen() {
@@ -1409,13 +1407,13 @@ void editorProcessKeypress() {
           case '0': // delete until the beginning of a line
             for (n=0; n<E.cx; n++)
               editorRowDelChar(&E.row[E.cy], 0);
-            editorDrawRow(E.cy);
+            editorDrawRowY(E.cy);
             E.cx=0;
             break;
           case '$': // delete until the end of line
             for (n=E.row[E.cy].size; n>=E.cx; n--)
               editorRowDelChar(&E.row[E.cy], n);
-            editorDrawRow(E.cy);
+            editorDrawRowY(E.cy);
             break;
           default:
             editorSetStatusMessage("Command not implemented");
@@ -1425,7 +1423,7 @@ void editorProcessKeypress() {
         c = getchar();
         editorRowDelChar(&E.row[E.cy], E.cx);
         editorRowInsertChar(&E.row[E.cy], E.cx, c);
-        editorDrawRow(E.cy);
+        editorDrawRowY(E.cy);
         break;
       case 'a':
         E.mode = M_INSERT;
