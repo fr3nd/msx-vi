@@ -29,6 +29,16 @@
 #define M_COMMAND 0
 #define M_INSERT  1
 
+/* skip thing movements */
+#define FORWARD     1
+#define BACKWARD    -1
+#define S_BEFORE_WS 1
+#define S_BEFORE_WS 1
+#define S_TO_WS     2
+#define S_OVER_WS   3
+#define S_END_PUNCT 4
+#define S_END_ALNUM 5
+
 /* open/create flags */
 #define  O_RDONLY   0x01
 #define  O_WRONLY   0x02
@@ -164,6 +174,38 @@ int isdigits(char *s) {
   }
 
   return 1;
+}
+
+// Inspired in busybox vi
+int st_test(int type) {
+  if (type == S_END_PUNCT) {
+    return (ispunct(E.row[E.cy].chars[E.cx]));
+  } else if (type == S_END_ALNUM) {
+    return (isalnum(E.row[E.cy].chars[E.cx]) || E.row[E.cy].chars[E.cx] == '_');
+  } else if (type == S_OVER_WS) {
+    return (isspace(E.row[E.cy].chars[E.cx]));
+  } else {
+    return 0;
+  }
+}
+
+void skip_thing(int dir, int type) {
+  while (st_test(type)) {
+    if (dir >= 0 && E.cx >= E.row[E.cy].rsize -1) {
+      if (E.cy < E.numrows) {
+        E.cy++;
+        E.cx=0;
+        break;
+      } else {
+        break;
+      }
+    } else if (dir < 0 && E.cx <= 0) { // Going backwards
+      // TODO go line before
+      break;
+    } else {
+      E.cx++;
+    }
+  }
 }
 
 // function (Register number, Data)
@@ -1470,6 +1512,23 @@ void editorProcessKeypress() {
         break;
       case 'X':
         editorDelChar(0);
+        break;
+      case 'w':
+        if (E.row[E.cy].rsize == 0) {
+          if (E.cy < E.numrows) {
+            E.cy++;
+            E.cx=0;
+          }
+        } else if (isalnum(E.row[E.cy].chars[E.cx]) || E.row[E.cy].chars[E.cx] == '_') {
+          skip_thing(FORWARD, S_END_ALNUM);
+        } else if (ispunct(E.row[E.cy].chars[E.cx])) {
+          skip_thing(FORWARD, S_END_PUNCT);
+        }
+
+        if (isspace(E.row[E.cy].chars[E.cx])) {
+          skip_thing(FORWARD, S_OVER_WS);
+        }
+
         break;
       default:
         editorSetStatusMessage("Command not implemented");
