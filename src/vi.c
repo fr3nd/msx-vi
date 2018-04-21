@@ -184,26 +184,38 @@ int st_test(int type) {
     return (isalnum(E.row[E.cy].chars[E.cx]) || E.row[E.cy].chars[E.cx] == '_');
   } else if (type == S_OVER_WS) {
     return (isspace(E.row[E.cy].chars[E.cx]));
+  } else if (type == S_END_PUNCT) {
+    return (ispunct(E.row[E.cy].chars[E.cx]));
   } else {
     return 0;
   }
 }
 
-void skip_thing(int dir, int type) {
+void skip_thing(int dir, int type, int linecnt) {
   while (st_test(type)) {
+    // If direction is forward and is end of line
     if (dir >= 0 && E.cx >= E.row[E.cy].rsize -1) {
-      if (E.cy < E.numrows) {
+      // If current line is lower than total number of lines
+      if (E.cy < E.numrows - 1 && linecnt == 1) {
         E.cy++;
-        E.cx=0;
+        E.cx = 0;
         break;
       } else {
         break;
       }
-    } else if (dir < 0 && E.cx <= 0) { // Going backwards
-      // TODO go line before
-      break;
+    // If direction is backwards and is beginning of line
+    } else if (dir < 0 && E.cx <= 0) {
+      // current line is not the first one
+      if (E.cy > 0 && linecnt == 1) {
+        E.cy--;
+        E.cx = E.row[E.cy].rsize - 1;
+        break;
+      } else {
+        E.cx = E.cx + linecnt * dir;
+        break;
+      }
     } else {
-      E.cx++;
+      E.cx = E.cx + dir;
     }
   }
 }
@@ -1515,19 +1527,66 @@ void editorProcessKeypress() {
         break;
       case 'w':
         if (E.row[E.cy].rsize == 0) {
-          if (E.cy < E.numrows) {
+          if (E.cy < E.numrows - 1) {
             E.cy++;
             E.cx=0;
           }
         } else if (isalnum(E.row[E.cy].chars[E.cx]) || E.row[E.cy].chars[E.cx] == '_') {
-          skip_thing(FORWARD, S_END_ALNUM);
+          skip_thing(FORWARD, S_END_ALNUM, 1);
         } else if (ispunct(E.row[E.cy].chars[E.cx])) {
-          skip_thing(FORWARD, S_END_PUNCT);
+          skip_thing(FORWARD, S_END_PUNCT, 1);
         }
 
         if (isspace(E.row[E.cy].chars[E.cx])) {
-          skip_thing(FORWARD, S_OVER_WS);
+          skip_thing(FORWARD, S_OVER_WS, 1);
         }
+
+        break;
+      case 'b': // Back a word
+      case 'e': // End of word
+        if (c == 'e')
+          n = FORWARD;
+        else
+          n = BACKWARD;
+
+        // If direction is forward
+        if (n == FORWARD) {
+          // if it's not last line
+          if (E.cy < E.numrows - 1) {
+
+            // If Empty line or end of line
+            if (E.row[E.cy].rsize == 0 || E.cx == E.row[E.cy].rsize -1) {
+              E.cy++;
+              E.cx=-1;
+            }
+          }
+        // If direction is backward
+        } else {
+          // If it's not first line
+          if (E.cy > 0) {
+            // If Empty line or beginning of line
+            if (E.row[E.cy].rsize == 0 || E.cx == 0) {
+              E.cy--;
+              E.cx = E.row[E.cy].rsize - 1;
+            }
+          }
+        }
+
+        E.cx += n;
+
+        if (isspace(E.row[E.cy].chars[E.cx])) {
+          skip_thing(n, S_OVER_WS, 0);
+        }
+        if (isalnum(E.row[E.cy].chars[E.cx]) || E.row[E.cy].chars[E.cx] == '_') {
+          skip_thing(n, S_END_ALNUM, 0);
+        } else if (ispunct(E.row[E.cy].chars[E.cx])) {
+          skip_thing(n, S_END_PUNCT, 0);
+        }
+
+        if (n == BACKWARD && E.cx != 0)
+          E.cx -= n;
+        else if (n == FORWARD && E.cx != E.row[E.cy].rsize - 1)
+          E.cx -= n;
 
         break;
       default:
