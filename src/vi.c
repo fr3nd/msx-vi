@@ -892,7 +892,7 @@ void editorOpen(char *filename) {
   while(1) {
     bytes_read = read(buffer, sizeof(buffer), fp);
     total_read = total_read + bytes_read;
-    printf("\33Y7 \33K%d bytes read.", total_read);
+    printf("\33Y7 %d bytes read...", total_read);
 
     for (n=0; n<bytes_read ;n++) {
       if (buffer[n] != '\n' && buffer[n] != '\r') {
