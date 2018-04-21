@@ -36,10 +36,8 @@
 
         .area   _HEAP
 __sdcc_heap_start::
-        ;; For now just allocate 1k of heap.
-        ;;.ds     1023
-        ;;.ds     49152
-        .ds     32768
+        ;; Allocate heap
+        .ds     1023 * 32
 
         .area   _HEAP_END
 __sdcc_heap_end::
