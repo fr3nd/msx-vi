@@ -935,7 +935,8 @@ int editorSave(char *filename) {
 
   printf("\33x5\33Y7 \33K");
   total_written = 0;
-  fp = open(E.filename, O_RDWR);
+  // Using create instead of open so the file size is updated when saving
+  fp = create(filename, O_RDWR, 0x00);
   if (fp < 0) {
     // Error is in the least significative byte of fp
     n = (fp >> 0) & 0xff;
