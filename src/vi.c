@@ -965,6 +965,10 @@ int editorSave(char *filename) {
     total_written = total_written + bytes_written;
     printf("\33Y7 %d bytes written to disk: %s", total_written, E.filename);
   }
+  line_buffer[0] = 0x1a;
+  write(line_buffer, 1, fp);
+  close(fp);
+
   editorSetStatusMessage("%d bytes written to disk: %s Done!", total_written, E.filename);
   E.dirty = 0;
   return 0;
