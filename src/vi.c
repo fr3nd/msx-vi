@@ -982,7 +982,7 @@ int editorSave(char *filename) {
 
 /*** find {{{ ***/
 
-void editorFindCallback(char *query, char direction, char direction_mod) {
+void editorFindCallback(char *query, signed char direction, char direction_mod) {
   char *match;
   erow *row;
   int i;
