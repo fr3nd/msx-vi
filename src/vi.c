@@ -102,7 +102,7 @@ call CALSLT
 
 // External functions in iolib.rel
 extern unsigned char inp (unsigned char);
-extern outp (unsigned char, unsigned char);
+extern void outp (unsigned char, unsigned char);
 
 /*** data {{{ ***/
 
