@@ -832,7 +832,7 @@ int read(char* buf, unsigned int size, char fp) __naked {
   __endasm;
 }
 
-int write(char* buf, unsigned int size, char fp) __naked {
+int write(char* buf, unsigned int size, int fp) __naked {
   buf;
   size;
   fp;
