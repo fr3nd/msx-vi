@@ -1315,18 +1315,16 @@ void editorMoveCursor(char key) {
       break;
     case PAGE_UP:
     case PAGE_DOWN:
-      {
-        if (key == PAGE_UP) {
-          E.cy = E.rowoff;
-        } else if (key == PAGE_DOWN) {
-          E.cy = E.rowoff + E.screenrows - 1;
-          if (E.cy > E.numrows) E.cy = E.numrows;
-        }
-
-        times = E.screenrows;
-        while (times--)
-          editorMoveCursor(key == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+      if (key == PAGE_UP) {
+        E.cy = E.rowoff;
+      } else if (key == PAGE_DOWN) {
+        E.cy = E.rowoff + E.screenrows - 1;
+        if (E.cy > E.numrows) E.cy = E.numrows;
       }
+
+      times = E.screenrows;
+      while (times--)
+        editorMoveCursor(key == PAGE_UP ? ARROW_UP : ARROW_DOWN);
       break;
     case ARROW_LEFT:
       if (E.cx != 0) {
