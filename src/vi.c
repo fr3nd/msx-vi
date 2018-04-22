@@ -933,6 +933,9 @@ int editorSave(char *filename) {
     return 1;
   }
 
+  free(E.filename);
+  E.filename = strdup(filename);
+
   printf("\33x5\33Y7 \33K");
   total_written = 0;
   // Using create instead of open so the file size is updated when saving
@@ -942,7 +945,7 @@ int editorSave(char *filename) {
     n = (fp >> 0) & 0xff;
     if (n == NOFIL) {
       editorSetStatusMessage("Error saving to disk: File does not exist.");
-      fp = create(E.filename, O_RDWR, 0x00);
+      fp = create(filename, O_RDWR, 0x00);
       if (fp < 0) {
         editorSetStatusMessage("Error saving to disk: Error code: 0x%X", n);
         return 1;
@@ -964,13 +967,13 @@ int editorSave(char *filename) {
     line_buffer[E.row[n].size+1] = '\n';
     bytes_written = write(line_buffer, E.row[n].size+2, fp);
     total_written = total_written + bytes_written;
-    printf("\33Y7 %d bytes written to disk: %s", total_written, E.filename);
+    printf("\33Y7 %d bytes written to disk: %s", total_written, filename);
   }
   line_buffer[0] = 0x1a;
   write(line_buffer, 1, fp);
   close(fp);
 
-  editorSetStatusMessage("%d bytes written to disk: %s Done!", total_written, E.filename);
+  editorSetStatusMessage("%d bytes written to disk: %s Done!", total_written, filename);
   E.dirty = 0;
   return 0;
 }
