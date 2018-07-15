@@ -1488,6 +1488,10 @@ void editorProcessKeypress() {
               editorRowDelChar(&E.row[E.cy], n);
             editorDrawRowY(E.cy);
             break;
+          case 'G': // delete until end of file
+            for (n=E.numrows; n>0; n--)
+              editorDelRow(E.cy);
+            break;
           default:
             editorSetStatusMessage("Command not implemented");
         }
