@@ -49,6 +49,8 @@ test: release
 release: all
 	cp bin/vi.com dsk/
 	cp -r ../tests/*.txt dsk/
+	cp ../README.md dsk
+	cp ../LICENSE dsk
 	7z a vi.zip ./dsk/*
 
 # vim:ft=make

@@ -33,7 +33,7 @@ Few months later I discovered the [Build Your Own Text Editor](https://viewsourc
 
 Try it online:
 
-* [MSX-vi on WebMSX](http://webmsx.org/?PRESETS=DOS2&DISKA_FILES_URL=https://github.com/fr3nd/msx-vi/releases/download/v0.0.6-alpha/vi.zip)
+* [MSX-vi on WebMSX](http://webmsx.org/?PRESETS=DOS2&DISKA_FILES_URL=https://github.com/fr3nd/msx-vi/releases/download/v0.1.0/vi.zip)
 
 **Note**: In some keyboards, the ```:``` key doesn't work in WebMSX.
 
