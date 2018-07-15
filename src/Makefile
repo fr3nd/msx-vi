@@ -36,7 +36,11 @@ clean: libsclean
 	find *.rel -type f -not -name 'VDP*' -delete || true
 	find dsk \
 		-not -name 'COMMAND2.COM' \
+		-not -name 'COMMAND.COM' \
 		-not -name 'MSXDOS2.SYS' \
+		-not -name 'MSXDOS.SYS' \
+		-not -name 'NEXTOR.SYS' \
+		-not -name 'NEXTORJP.SYS' \
 		-not -name 'AUTOEXEC.BAT' \
 		-delete || true
 	rm -f *.com *.asm *.lst *.sym *.bin *.ihx *.lk *.map *.noi
