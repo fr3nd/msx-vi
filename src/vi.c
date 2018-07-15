@@ -6,7 +6,7 @@
 #include <time.h>
 #include <stdarg.h>
 
-#define MSXVI_VERSION "0.0.6a"
+#define MSXVI_VERSION "0.1.0"
 #define MSXVI_TAB_STOP 8
 #define FILE_BUFFER_LENGTH 1024
 #define LINE_BUFFER_LENGTH 1024
@@ -1129,12 +1129,12 @@ void editorDrawRows() {
     gotoxy((E.screencols - len) / 2, 8);
     printf("%s", welcome);
 
-    sprintf(welcome, "This is alpha software with known bugs.");
+    sprintf(welcome, "This is beta software and it may contain bugs.");
     len = strlen(welcome);
     gotoxy((E.screencols - len) / 2, 10);
     printf("%s", welcome);
 
-    sprintf(welcome, "Do not use it to edit important files.");
+    sprintf(welcome, "Use it at your own risk.");
     len = strlen(welcome);
     gotoxy((E.screencols - len) / 2, 11);
     printf("%s", welcome);
