@@ -61,3 +61,65 @@ Try it online:
 ![MSX-vi welcome screen](https://raw.githubusercontent.com/fr3nd/msx-vi/master/img/openmsx0001.png "MSX-vi welcome screen")
 
 ![MSX-vi editing large file](https://raw.githubusercontent.com/fr3nd/msx-vi/master/img/openmsx0002.png "MSX-vi editing large file")
+
+## Supported commands
+
+### Exiting and saving
+
+* `:q`: Exit the editor as long there are no changes
+* `:q!`: Exit the editor without saving any changes
+* `:w`: Save changes to current file
+* `:w filename`: Save changes to `filename`
+* `:wq`: Save changes to current file and exit
+
+### Movement
+
+* `ESC`: Enter command mode
+* `CONTROL d`: Move one page down
+* `CONTROL u`: Move one page up
+* `h`: Move left
+* `j`: Move down
+* `k`: Move up
+* `l`: Move right
+* `0`: Move to the begining of the line
+* `$`: Move to the end of the line
+* `H`: Go to top of the screen
+* `M`: Go to middle of the screen
+* `L`: Go to bottom of the screen
+* `gg`: Go to the beginning of the file
+* `G`: Go to the end of the file
+* `w`: Move to next word
+* `b`: Move to previous word
+* `e`: Move to the end of the word
+
+### Deleting text
+
+* `dd`: Delete current line
+* `d0`: Delete until the beginning of the line
+* `d$`: Delete until the end of the line
+* `dG`: Delete ultil the end of the file
+* `x`: Delete a single character
+* `X`: Delete a single character to the left of cursor
+
+### Inserting text
+
+* `r`: Replace current character
+* `a`: Enter insert mode after the cursor
+* `A`: Enter insert mode after the current line
+* `i`: Enter insert mode at the cursor
+* `I`: Enter insert mode before the current line
+* `o`: Insert a new line after the current one
+* `O`: Insert a new line before the current one
+
+### Search
+
+* `/string`: Search forward for string
+* `?string`: Search backards for string
+* `n`: Search next ocurrence (forward)
+* `N`: Search next ocurrence (backards)
+
+
+### Other commands
+
+* `:color fg bg bd`: Changes the screen colors
+* `CONTROL l`: Refresh screen
