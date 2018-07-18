@@ -91,6 +91,7 @@ Try it online:
 * `w`: Move to next word
 * `b`: Move to previous word
 * `e`: Move to the end of the word
+* `:N`: Go to line `N`
 
 ### Deleting text
 
