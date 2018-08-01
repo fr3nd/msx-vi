@@ -124,3 +124,9 @@ Try it online:
 
 * `:color fg bg bd`: Changes the screen colors
 * `CONTROL l`: Refresh screen
+
+## Compile requirements
+
+* SDCC 3.5.0 (it doesn't work with newer versions)
+* GNU make
+* openMSX (for testing)
