@@ -1702,7 +1702,7 @@ int main(char **argv, int argc) {
           /*usage();*/
           /*break;*/
         default:
-          die("ERROR: Parameter not recognised");
+          die("ERROR: Parameter not recognized");
           break;
       }
     } else {
