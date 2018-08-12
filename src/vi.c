@@ -6,7 +6,7 @@
 #include <time.h>
 #include <stdarg.h>
 
-#define MSXVI_VERSION "0.1.0"
+#define MSXVI_VERSION "0.1.1"
 #define MSXVI_TAB_STOP 8
 #define FILE_BUFFER_LENGTH 1024
 #define LINE_BUFFER_LENGTH 1024
@@ -94,6 +94,11 @@
 #define FORCLR 0xF3E9
 #define BAKCLR 0xF3EA
 #define BDRCLR 0xF3EB
+
+/* Curremt system colors */
+#define CUR_FORCLR (* (char *) FORCLR)
+#define CUR_BAKCLR (* (char *) BAKCLR)
+#define CUR_BDRCLR (* (char *) BDRCLR)
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define DOSCALL  call 5
@@ -626,7 +631,7 @@ void set_inverted_area(void) {
   for (i=0; i < (E.screenrows+2) * E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i, 0x00);
   for (i=0; i < E.screencols/8; i++) vpoke(TEXT2_COLOR_TABLE+i + (E.screencols/8*22), 0xff);
   vdp_w(0x4f, 12); // blink colors
-  set_blink_colors(15, 4);
+  set_blink_colors(CUR_FORCLR, CUR_BAKCLR);
   vdp_w(0xf0, 13); // blink speed: stopped
 }
 
@@ -1241,9 +1246,9 @@ void runCommand() {
       }
     } else if (strncmp(command, "color", 5) == 0) {
       // Setting default colors
-      params[0] = 15;
-      params[1] = 4;
-      params[2] = 4;
+      params[0] = CUR_FORCLR;
+      params[1] = CUR_BAKCLR;
+      params[2] = CUR_BDRCLR;
 
       n = 0;
       token = strtok(command, " ");
